@@ -141,6 +141,19 @@ test('꿈해몽 조합 풀이 1만 가지 이상', async () => {
   }
 });
 
+test('궁합: 점수 범위와 띠 관계', async () => {
+  const { compatibility } = await import('../js/gunghap.js');
+  const me = calculateSaju({ year: 1981, month: 3, day: 5, hour: 12, minute: 30, gender: 'male' });
+  const ox = calculateSaju({ year: 1985, month: 2, day: 20, hour: null, minute: null, gender: 'female' }); // 소띠: 닭과 삼합
+  const rabbit = calculateSaju({ year: 1987, month: 9, day: 3, hour: null, minute: null, gender: 'female' }); // 토끼띠: 닭과 충
+  const good = compatibility(me, ox);
+  const hard = compatibility(me, rabbit);
+  assert.equal(good.zodiacRel, 'samhap');
+  assert.equal(hard.zodiacRel, 'chung');
+  assert.ok(good.score > hard.score);
+  for (const r of [good, hard]) assert.ok(r.score >= 35 && r.score <= 99 && r.items.length === 4);
+});
+
 test('꿈해몽 검색과 작명 추천', async () => {
   const { searchDreams } = await import('../js/dreams.js');
   const { suggestNames, analyzeName, HANJA } = await import('../js/naming.js');

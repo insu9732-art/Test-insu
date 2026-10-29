@@ -499,3 +499,39 @@ body.locked [data-lock] { position: relative; color: #8a8a8a; }
 body.locked [data-lock] .glyph { filter: grayscale(1); opacity: .45; }
 body.locked .launcher [data-lock]::after { content: "🔒"; position: absolute; top: 4px; right: 6px; font-size: 16px; }
 body.locked .menubar [data-lock]::before { content: "🔒"; font-size: 12px; margin-right: 2px; }
+
+/* 궁합 */
+.gh-score { text-align: center; }
+.gh-big { font-size: 56px; font-weight: 900; color: #c0182c; line-height: 1.1; }
+.gh-big small { font-size: 20px; margin-left: 2px; }
+.gh-hearts { font-size: 26px; color: #e0284a; letter-spacing: 4px; margin-bottom: 6px; }
+.gh-item { padding: 8px 0; border-bottom: 1px dotted var(--sh); }
+.gh-item:last-of-type { border-bottom: 0; }
+.gh-item-head { margin-bottom: 4px; }
+.gh-item .bar { height: 10px; margin: 4px 0 6px; }
+.gh-advice { margin-top: 10px; padding: 8px; background: #fffbe0; border: 1px solid #e0c060; }
+
+/* 꿈해몽 도구: 길흉 골라 보기, 많이 찾는 꿈, 꿈 일기 */
+.dream-tools { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px; }
+.dream-tools .chips { margin: 0; }
+.chips.popular { align-items: center; margin-top: 0; }
+.chips.popular .muted { font-size: 13px; margin-right: 4px; }
+.chips.popular button { font-size: 13px; }
+#dreamResults[data-luck="2"] li:not(.l2), #dreamResults[data-luck="1"] li:not(.l1), #dreamResults[data-luck="0"] li:not(.l0) { display: none; }
+.diary-head { padding: 10px; border-bottom: 1px dotted var(--sh); }
+.diary-head .luck { margin-left: 6px; }
+.diary-del { float: right; font-size: 12px; padding: 2px 8px; margin-top: 4px; }
+
+/* 좋은 날 달력 */
+.cal-nav { display: flex; gap: 6px; margin-bottom: 8px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-w { text-align: center; font-size: 12px; font-weight: bold; }
+.cal-w.sun { color: #c0182c; } .cal-w.sat { color: #1a4fc0; }
+.cal-d { min-height: 46px; padding: 2px; text-align: center; border: 1px solid var(--sh); background: #fff; position: relative; line-height: 1.15; }
+.cal-d b { display: block; font-size: 14px; }
+.cal-d small { font-size: 10px; color: #555; }
+.cal-d i { display: block; font-style: normal; font-size: 9px; color: #7a3e00; }
+.cal-d.s5 { background: #b7e4b0; } .cal-d.s4 { background: #e2f4dc; } .cal-d.s3 { background: #fff; } .cal-d.s2, .cal-d.s1 { background: #e6e6e6; color: #777; }
+.cal-d.today { outline: 2px solid #c0182c; outline-offset: -2px; }
+.cal-legend { font-size: 12px; margin-top: 6px; }
+.cal-legend .cal-d { display: inline-block; min-height: 0; width: 12px; height: 12px; vertical-align: middle; margin-left: 6px; }

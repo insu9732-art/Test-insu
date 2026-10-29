@@ -1,13 +1,14 @@
 import {
   STEMS, STEMS_KO, BRANCHES, BRANCHES_KO, ZODIAC, ELEMENTS_HANJA, BRANCH_ELEMENT, BRANCH_MAIN_STEM,
   stemElement, calculateSaju, lunarToSolar, solarToLunar, tenGod, pillarName, surroundingJie,
-  yearPillarOf, todayPillar,
+  yearPillarOf, todayPillar, dayPillarOf,
 } from './saju.js';
 import { tojungOf } from './tojung.js';
 import { DREAM_CATEGORIES, DREAM_COUNT, searchDreams } from './dreams.js';
 import { SYMBOLS, GEN_COUNT, kindLabel, actionsFor, modifiersFor, comboCount, interpret, searchGenerated } from './dream-gen.js';
 import { hanjaFor, analyzeName, suggestNames, soundElement, ELEMENT_NAMES } from './naming.js';
 import { APP_CONFIG, COUPANG_NOTICE } from './config.js';
+import { compatibility } from './gunghap.js';
 import { ZODIAC_LIFE } from './zodiac-life.js';
 import { lifeReading, sinsal, relations, monthlyFortune, daewoonReading, dailyDetail } from './reading.js';
 import { DAY_MASTER, ELEMENT_INFO, TEN_GOD_INFO, STRENGTH_INFO, PILLAR_MEANING } from './content.js';
@@ -18,12 +19,12 @@ const STORAGE_KEY = 'saju.profiles.v1';
 const form = $('#sajuForm');
 const views = {
   home: $('#homeView'), input: $('#inputView'), result: $('#resultView'),
-  dream: $('#dreamView'), naming: $('#namingView'), saved: $('#savedView'),
+  dream: $('#dreamView'), naming: $('#namingView'), saved: $('#savedView'), gunghap: $('#gunghapView'),
   manse: $('#manseView'),
 };
 const VIEW_TITLE = {
   home: '준비', input: '생년월일시를 입력하세요', result: '사주 풀이', dream: '꿈해몽',
-  naming: '작명소', saved: '보관함', manse: '만세력',
+  naming: '작명소', saved: '보관함', manse: '만세력', gunghap: '궁합',
 };
 let current = null; // { profile, saju, solar }
 let activeTab = 'chart';
@@ -66,6 +67,7 @@ function go(target, tab) {
   }
   if (target === 'home') navStack.length = 0;
   if (target === 'naming') prepareNaming();
+  if (target === 'gunghap') $('#ghLoad').hidden = !current;
   if (target === 'manse' && !$('#manseResult').innerHTML) showManse(todayBirth());
   show(target);
 }
@@ -604,6 +606,7 @@ function tabFortune() {
         <dt>행운 숫자</dt><dd>${ELEMENT_INFO[helpful].numbers}</dd>
       </dl>
     </div>
+    ${goodDaysCard()}
     <div class="card">
       <h3>${year}년 세운 · ${pillarName(yp)}(${pillarName(yp, 'ko')})년</h3>
       <p><span class="tag">천간 ${yg}</span><span class="tag">지지 ${ygb}</span></p>
@@ -619,6 +622,59 @@ function tabFortune() {
       </div>`).join('')}
     </div>`;
 }
+
+// ---------- 좋은 날 달력 (택일) ----------
+let calOffset = 0; // 0: 이번 달, 1: 다음 달
+const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 그날 일진의 점수: 도움 되는 오행이면 오르고, 내 일지와 충이면 내린다
+function dayScore(p) {
+  let s = luckScore(p);
+  if (((p.branch - current.saju.pillars.day.branch + 12) % 12) === 6) s--;
+  return Math.max(1, Math.min(5, s));
+}
+
+function goodDaysCard() {
+  const now = new Date(Date.now() + 9 * 3600000);
+  const base = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + calOffset, 1));
+  const y = base.getUTCFullYear();
+  const m = base.getUTCMonth() + 1;
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const todayD = calOffset === 0 ? now.getUTCDate() : 0;
+  const days = [];
+  for (let d = 1; d <= last; d++) {
+    const p = dayPillarOf(y, m, d);
+    const lunar = solarToLunar(y, m, d);
+    // 손 없는 날: 음력 9·10, 19·20, 29·30일 (이사·개업에 많이 고르는 날)
+    const son = lunar && lunar.day % 10 >= 9 || (lunar && lunar.day % 10 === 0);
+    days.push({ d, p, score: dayScore(p), son, w: new Date(Date.UTC(y, m - 1, d)).getUTCDay() });
+  }
+  const best = days.filter((x) => x.d >= todayD).sort((a, b) => b.score - a.score || a.d - b.d).slice(0, 3);
+  const blanks = days[0].w;
+  return `<div class="card">
+    <h3>${y}년 ${m}월 좋은 날 (택일)</h3>
+    <div class="cal-nav">
+      <button type="button" class="btn" data-cal="0"${calOffset === 0 ? ' disabled' : ''}>이번 달</button>
+      <button type="button" class="btn" data-cal="1"${calOffset === 1 ? ' disabled' : ''}>다음 달</button>
+    </div>
+    <div class="cal-grid">
+      ${WEEK.map((w, i) => `<div class="cal-w${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${w}</div>`).join('')}
+      ${'<div></div>'.repeat(blanks)}
+      ${days.map((x) => `<div class="cal-d s${x.score}${x.d === todayD ? ' today' : ''}">
+        <b>${x.d}</b><small>${STEMS_KO[x.p.stem]}${BRANCHES_KO[x.p.branch]}</small>${x.son ? '<i>손없음</i>' : ''}</div>`).join('')}
+    </div>
+    <p class="cal-legend"><span class="cal-d s5"></span> 아주 좋음 <span class="cal-d s4"></span> 좋음 <span class="cal-d s3"></span> 보통 <span class="cal-d s2"></span> 조심</p>
+    <p><b>가장 좋은 날</b> ${best.map((x) => `<span class="tag">${m}/${x.d}(${WEEK[x.w]}) ${'★'.repeat(x.score)}</span>`).join(' ')}</p>
+    <p class="note" style="text-align:left">나에게 도움이 되는 오행의 날일수록, 내 일지와 부딪히지(충) 않는 날일수록 좋게 봅니다. '손없음'은 이사·개업 날로 많이 고르는 손 없는 날입니다.</p>
+  </div>`;
+}
+
+$('#tabContent').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cal]');
+  if (!b) return;
+  calOffset = Number(b.dataset.cal);
+  renderTab();
+});
 
 // 오늘 일진이 나에게 도움이 되는 오행인지로 1~5점
 function luckScore(today) {
@@ -748,7 +804,7 @@ const GEN_KINDS_OF = { 동물: ['동물'], 사람: ['사람'], 신체: ['신체'
 const DREAM_TOTAL = DREAM_COUNT + GEN_COUNT;
 
 function situationsHtml(list) {
-  return `<ul class="situations">${list.map((s) => `<li class="${s.hit ? 'hit' : ''}">
+  return `<ul class="situations">${list.map((s) => `<li class="l${s.luck}${s.hit ? ' hit' : ''}">
     <b>${esc(s.title)}</b><span class="luck luck-${s.luck}">${LUCK_LABEL[s.luck]}</span>
     <p>${esc(s.text)}</p></li>`).join('')}</ul>`;
 }
@@ -782,7 +838,13 @@ function curatedItem(d, open) {
   </details>`;
 }
 
+// 많이 찾는 꿈 (검색어가 없을 때 바로 누를 수 있게)
+const POPULAR_DREAMS = ['돼지가 집에 들어오는 꿈', '똥을 밟는 꿈', '이가 빠지는 꿈', '뱀에게 물리는 꿈', '돌아가신 할머니가 웃는 꿈',
+  '집에 불이 나는 꿈', '돈을 줍는 꿈', '시험 보는 꿈', '전 애인을 만나는 꿈', '물고기를 잡는 꿈', '호랑이를 보는 꿈', '아기를 안는 꿈'];
+let dreamDiaryMode = false;
+
 function renderDreams() {
+  if (dreamDiaryMode) { renderDiary(); return; }
   $('#dreamCats').innerHTML = ['', ...DREAM_CATEGORIES, '음식'].map((c) =>
     `<button type="button" data-cat="${c}" class="${c === dreamCat ? 'active' : ''}">${c || '전체'}</button>`).join('');
   const q = $('#dreamQuery').value.trim();
@@ -810,15 +872,77 @@ function renderDreams() {
     count = list.length + gen.length;
   }
   $('#dreamResults').innerHTML = html || `<p class="empty-msg">'${esc(q)}' 꿈은 아직 사전에 없어요. 다른 낱말로 찾아보세요.</p>`;
+  $('#dreamPopular').innerHTML = q ? '' : `<span class="muted">많이 찾는 꿈</span>${POPULAR_DREAMS.map((d) => `<button type="button" data-q="${d}">${d}</button>`).join('')}`;
+  $('#dreamSave').hidden = !q || !html;
   $('#statusText').textContent = q ? `꿈해몽 · ${count}건` : `꿈해몽 · 모두 ${DREAM_TOTAL.toLocaleString()}가지 풀이`;
 }
 
-$('#dreamForm').addEventListener('submit', (e) => { e.preventDefault(); dreamCat = ''; renderDreams(); });
-$('#dreamQuery').addEventListener('input', () => { dreamCat = ''; renderDreams(); });
+$('#dreamForm').addEventListener('submit', (e) => { e.preventDefault(); dreamCat = ''; dreamDiaryMode = false; renderDreams(); });
+$('#dreamQuery').addEventListener('input', () => { dreamCat = ''; dreamDiaryMode = false; renderDreams(); });
+$('#dreamPopular').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-q]');
+  if (!b) return;
+  $('#dreamQuery').value = b.dataset.q;
+  dreamCat = '';
+  renderDreams();
+});
+// 길몽·흉몽만 골라 보기
+$('#dreamLuck').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  $('#dreamLuck').querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
+  $('#dreamResults').dataset.luck = b.dataset.luck;
+});
+
+// ---------- 꿈 일기 ----------
+const DIARY_KEY = 'saju.dreamDiary.v1';
+function loadDiary() {
+  try { return JSON.parse(localStorage.getItem(DIARY_KEY)) || []; } catch { return []; }
+}
+function saveDiary(list) {
+  try { localStorage.setItem(DIARY_KEY, JSON.stringify(list)); return true; } catch { return false; }
+}
+$('#dreamSave').addEventListener('click', () => {
+  const q = $('#dreamQuery').value.trim();
+  const li = $('#dreamResults li.hit') || $('#dreamResults details[open] li') || $('#dreamResults li');
+  if (!q || !li) return;
+  const luck = Number((li.className.match(/l(\d)/) || [0, 1])[1]);
+  const t = new Date(Date.now() + 9 * 3600000);
+  const list = loadDiary();
+  list.unshift({ id: String(Date.now()), date: `${t.getUTCFullYear()}.${t.getUTCMonth() + 1}.${t.getUTCDate()}`, text: q, title: li.querySelector('b').textContent, luck, note: li.querySelector('p').textContent });
+  if (saveDiary(list.slice(0, 300))) toast('꿈 일기에 적었어요');
+});
+$('#dreamDiary').addEventListener('click', () => {
+  dreamDiaryMode = !dreamDiaryMode;
+  renderDreams();
+});
+function renderDiary() {
+  const list = loadDiary();
+  const cnt = [0, 0, 0];
+  for (const d of list) cnt[d.luck]++;
+  $('#dreamPopular').innerHTML = '';
+  $('#dreamSave').hidden = true;
+  $('#dreamResults').innerHTML = `<div class="diary-head">
+      <b>📔 나의 꿈 일기</b> · 모두 ${list.length}개
+      <span class="luck luck-2">길몽 ${cnt[2]}</span><span class="luck luck-1">보통 ${cnt[1]}</span><span class="luck luck-0">흉몽 ${cnt[0]}</span>
+    </div>
+    ${list.length ? `<ul class="situations">${list.map((d) => `<li class="l${d.luck}">
+      <small class="muted">${esc(d.date)}</small> <b>${esc(d.text)}</b><span class="luck luck-${d.luck}">${LUCK_LABEL[d.luck]}</span>
+      <p>${esc(d.note)}</p><button type="button" class="btn diary-del" data-id="${d.id}">지우기</button></li>`).join('')}</ul>`
+    : '<p class="empty-msg">아직 적은 꿈이 없어요. 꿈을 찾아본 뒤 "📖 일기에 적기"를 눌러 보세요.</p>'}`;
+  $('#statusText').textContent = `꿈 일기 · ${list.length}개`;
+}
+$('#dreamResults').addEventListener('click', (e) => {
+  const b = e.target.closest('.diary-del');
+  if (!b) return;
+  saveDiary(loadDiary().filter((d) => d.id !== b.dataset.id));
+  renderDiary();
+});
 $('#dreamCats').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
   dreamCat = b.dataset.cat;
+  dreamDiaryMode = false;
   $('#dreamQuery').value = '';
   renderDreams();
 });
@@ -1114,6 +1238,70 @@ $('#manseToday').addEventListener('click', () => {
   showManse(t);
 });
 
+// ---------- 궁합 ----------
+
+const ghBirthA = birthWidget($('#ghBirthA'), 'gha', { placeholder: '숫자 8자리 예) 19810129' });
+const ghBirthB = birthWidget($('#ghBirthB'), 'ghb', { placeholder: '숫자 8자리 예) 19830712' });
+
+$('#ghLoad').addEventListener('click', () => {
+  if (!current) return;
+  const p = current.profile;
+  ghBirthA.set({
+    calendar: p.calendar === 'lunar' ? (p.leap ? 'lunar-leap' : 'lunar') : 'solar',
+    digits: `${p.date.y}${pad2(p.date.m)}${pad2(p.date.d)}`,
+    sijin: p.sijin != null ? p.sijin : p.time ? sijinOf(p.time) : '',
+  });
+  if (p.name) $('#ghNameA').value = p.name;
+  const g = document.querySelector(`input[name="ghGenderA"][value="${p.gender}"]`);
+  if (g) g.checked = true;
+  toast('사주를 불러왔어요');
+});
+
+$('#ghGo').addEventListener('click', () => {
+  $('#ghError').textContent = '';
+  const a = ghBirthA.read();
+  const b = ghBirthB.read();
+  const err = a.error || b.error || (!a.solar ? '나의 생년월일을 넣어 주세요' : !b.solar ? '상대의 생년월일을 넣어 주세요' : '');
+  if (err) { $('#ghError').textContent = err; return; }
+  const gA = document.querySelector('input[name="ghGenderA"]:checked').value;
+  const gB = document.querySelector('input[name="ghGenderB"]:checked').value;
+  const sA = sajuOfBirth(a, gA);
+  const sB = sajuOfBirth(b, gB);
+  const nA = $('#ghNameA').value.trim() || '나';
+  const nB = $('#ghNameB').value.trim() || '상대';
+  const r = compatibility(sA, sB);
+  const hearts = Math.round(r.score / 20);
+  $('#ghResult').innerHTML = `
+    <div class="card gh-score">
+      <h3>${esc(nA)} ♥ ${esc(nB)}</h3>
+      <div class="gh-big">${r.score}<small>점</small></div>
+      <div class="gh-hearts">${'♥'.repeat(hearts)}${'♡'.repeat(5 - hearts)}</div>
+      <p><b>${r.grade}</b> — ${r.gradeText}</p>
+    </div>
+    <div class="card">
+      <h3>항목별 궁합</h3>
+      ${r.items.map((it) => `<div class="gh-item">
+        <div class="gh-item-head"><b>${esc(it.title)}</b> <span class="tag">${it.tag}</span></div>
+        <div class="bar"><i style="width:${Math.max(4, Math.round(((it.score + it.max) / (it.max * 2)) * 100))}%;background:${it.score < 0 ? 'var(--fire)' : 'var(--wood)'}"></i></div>
+        <p>${esc(it.text)}</p></div>`).join('')}
+      <p class="gh-advice">💡 ${esc(r.advice)}</p>
+    </div>
+    ${sajuPairCard(sA, a, nA)}
+    ${sajuPairCard(sB, b, nB)}
+    <p class="note">궁합은 재미와 참고용입니다. 좋은 관계는 서로를 아끼는 마음에서 시작됩니다.</p>`;
+  $('#statusText').textContent = `궁합 · ${r.score}점 ${r.grade}`;
+  $('#ghResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+function sajuPairCard(saju, birth, name) {
+  return `<div class="card">
+    <h3>${esc(name)}의 사주</h3>
+    <p class="note">양력 ${birth.solar.year}.${birth.solar.month}.${birth.solar.day}${birth.sijin != null ? ` · ${BRANCHES_KO[birth.sijin]}시` : ' · 시 모름'} · ${saju.zodiac}띠 · 일간 ${STEMS[saju.dayMaster]}(${STEMS_KO[saju.dayMaster]}${ELEMENTS_HANJA[stemElement(saju.dayMaster)]})</p>
+    ${pillarsRow(saju)}
+    ${elementBars(saju.elements)}
+  </div>`;
+}
+
 // ---------- 쿠팡 배너·잠금 ----------
 
 // 잠금은 앱을 켤 때마다 새로 걸린다 (저장하지 않음). 오래 밖에 나가 있다 돌아와도 다시 건다.
@@ -1121,7 +1309,7 @@ const RELOCK_AFTER = 30 * 60000;
 let unlocked = false;
 let hiddenAt = 0;
 try { localStorage.removeItem('saju.unlockUntil'); } catch { /* 예전 버전의 시간제 잠금 */ }
-const LOCKED_VIEWS = { input: '사주풀이', dream: '꿈해몽', naming: '작명', manse: '만세력', today: '오늘운세', saved: '보관함' };
+const LOCKED_VIEWS = { input: '사주풀이', dream: '꿈해몽', naming: '작명', manse: '만세력', today: '오늘운세', saved: '보관함', gunghap: '궁합' };
 
 // 배너 링크: 저장소의 ads.json 목록에서 앱을 켤 때마다 하나를 무작위로 고른다.
 // 받아 오지 못하면 지난번에 받은 목록, 그것도 없으면 config.js의 기본 링크를 쓴다.

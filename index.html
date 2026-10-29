@@ -27,6 +27,7 @@
     <button data-go="input" data-tab="tojung" data-lock>토정비결(<u>T</u>)</button>
     <button data-go="today" data-lock>오늘운세(<u>U</u>)</button>
     <button data-go="dream" data-lock>꿈해몽(<u>D</u>)</button>
+    <button data-go="gunghap" data-lock>궁합(<u>G</u>)</button>
     <button data-go="naming" data-lock>작명소(<u>N</u>)</button>
     <button data-go="manse" data-lock>만세력(<u>M</u>)</button>
     <button data-go="saved" data-lock>보관함(<u>F</u>)</button>
@@ -57,6 +58,7 @@
             <button data-go="input" data-tab="tojung" data-lock><span class="glyph">土亭</span>토정비결</button>
             <button data-go="dream" data-lock><span class="glyph">夢</span>꿈해몽</button>
             <button data-go="naming" data-lock><span class="glyph">名</span>작명소</button>
+            <button data-go="gunghap" data-lock><span class="glyph">合</span>궁합</button>
             <button data-go="manse" data-lock><span class="glyph">曆</span>만세력</button>
             <button data-go="today" data-lock><span class="glyph">日</span>오늘운세</button>
             <button data-go="saved" data-lock><span class="glyph">藏</span>보관함</button>
@@ -149,12 +151,58 @@
             <button type="submit" class="btn">찾기</button>
           </form>
           <div class="chips" id="dreamCats"></div>
+          <div class="dream-tools">
+            <div class="chips" id="dreamLuck" role="radiogroup" aria-label="길흉">
+              <button type="button" data-luck="" class="active">전체</button>
+              <button type="button" data-luck="2">길몽만</button>
+              <button type="button" data-luck="1">보통</button>
+              <button type="button" data-luck="0">흉몽만</button>
+            </div>
+            <div class="row">
+              <button type="button" class="btn" id="dreamSave" hidden>📖 일기에 적기</button>
+              <button type="button" class="btn" id="dreamDiary">📔 꿈 일기</button>
+            </div>
+          </div>
+          <div class="chips popular" id="dreamPopular"></div>
           <div id="dreamResults" class="listbox"></div>
         </div>
       </div>
     </section>
 
     <!-- 작명소 -->
+    <!-- 궁합 -->
+    <section id="gunghapView" class="view" hidden>
+      <div class="win">
+        <div class="win-title">궁합</div>
+        <div class="win-body">
+          <fieldset class="group">
+            <legend>나</legend>
+            <div class="row"><input type="text" id="ghNameA" maxlength="10" placeholder="이름 (선택)" autocomplete="off" /></div>
+            <div class="segmented" role="radiogroup" aria-label="나의 성별">
+              <label><input type="radio" name="ghGenderA" value="male" checked /><span>남자</span></label>
+              <label><input type="radio" name="ghGenderA" value="female" /><span>여자</span></label>
+            </div>
+            <div id="ghBirthA"></div>
+            <button type="button" class="btn" id="ghLoad" hidden>보던 사주 불러오기</button>
+          </fieldset>
+          <fieldset class="group">
+            <legend>상대</legend>
+            <div class="row"><input type="text" id="ghNameB" maxlength="10" placeholder="이름 (선택)" autocomplete="off" /></div>
+            <div class="segmented" role="radiogroup" aria-label="상대의 성별">
+              <label><input type="radio" name="ghGenderB" value="male" /><span>남자</span></label>
+              <label><input type="radio" name="ghGenderB" value="female" checked /><span>여자</span></label>
+            </div>
+            <div id="ghBirthB"></div>
+          </fieldset>
+          <p class="error" id="ghError" role="alert"></p>
+          <div class="dlg-buttons">
+            <button type="button" class="btn-big" id="ghGo"><span class="ok">✔</span> 궁합 보기</button>
+          </div>
+          <div id="ghResult"></div>
+        </div>
+      </div>
+    </section>
+
     <section id="namingView" class="view" hidden>
       <div class="win">
         <div class="win-title">작명소</div>
