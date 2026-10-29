@@ -51,12 +51,12 @@ function goBack() {
 }
 
 function go(target, tab) {
-  if (target === 'today') {
-    if (current) { activeTab = 'fortune'; renderTab(); show('result'); } else { pendingTab = 'fortune'; show('input'); }
-    return;
-  }
   if (LOCKED_VIEWS[target] && !isUnlocked()) {
     requireUnlock(tab === 'tojung' ? '토정비결' : LOCKED_VIEWS[target], () => go(target, tab));
+    return;
+  }
+  if (target === 'today') {
+    if (current) { activeTab = 'fortune'; renderTab(); show('result'); } else { pendingTab = 'fortune'; show('input'); }
     return;
   }
   if (target === 'input') {
@@ -1108,7 +1108,7 @@ const RELOCK_AFTER = 30 * 60000;
 let unlocked = false;
 let hiddenAt = 0;
 try { localStorage.removeItem('saju.unlockUntil'); } catch { /* 예전 버전의 시간제 잠금 */ }
-const LOCKED_VIEWS = { input: '사주풀이', dream: '꿈해몽', naming: '작명' };
+const LOCKED_VIEWS = { input: '사주풀이', dream: '꿈해몽', naming: '작명', manse: '만세력', today: '오늘운세', saved: '보관함' };
 
 function settings() {
   let saved = {};
@@ -1148,7 +1148,7 @@ function openAd(e) {
   const wasLocked = !isUnlocked();
   unlock();
   renderAd();
-  if (wasLocked) toast('이용이 열렸어요! 사주풀이·꿈해몽·작명을 쓸 수 있어요');
+  if (wasLocked) toast('이용이 열렸어요! 모든 메뉴를 쓸 수 있어요');
   if (!$('#gate').hidden) {
     $('#gate').hidden = true;
     const action = pendingAction;
@@ -1174,8 +1174,8 @@ function renderAd() {
   $('#adHint').hidden = !locking;
   $('#adHint').className = 'ad-hint' + (open ? ' ok' : '');
   $('#adHint').textContent = open
-    ? '✔ 사주풀이·토정비결·꿈해몽·작명 이용 중 (앱을 다시 켜면 배너를 한 번 더 눌러 주세요)'
-    : '▲ 배너를 누르면 사주풀이·토정비결·꿈해몽·작명을 이용할 수 있어요';
+    ? '✔ 모든 메뉴 이용 중 (앱을 다시 켜면 배너를 한 번 더 눌러 주세요)'
+    : '▲ 배너를 누르면 모든 메뉴를 이용할 수 있어요';
 }
 
 $('#adBanner').addEventListener('click', openAd);
@@ -1209,7 +1209,7 @@ $('#setTest').addEventListener('click', () => {
 renderAd();
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { hiddenAt = Date.now(); return; }
-  if (hiddenAt && Date.now() - hiddenAt > RELOCK_AFTER) { unlocked = false; if (LOCKED_VIEWS[navStack[navStack.length - 1]] || navStack[navStack.length - 1] === 'result') go('home'); }
+  if (hiddenAt && Date.now() - hiddenAt > RELOCK_AFTER) { unlocked = false; if (LOCKED_VIEWS[navStack[navStack.length - 1]] || navStack[navStack.length - 1] === 'result') { navStack.length = 0; show('home'); } }
   renderAd();
 });
 
