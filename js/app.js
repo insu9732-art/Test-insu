@@ -3,6 +3,7 @@ import {
   stemElement, calculateSaju, lunarToSolar, solarToLunar, tenGod, pillarName,
   yearPillarOf, todayPillar,
 } from './saju.js';
+import { lifeReading, sinsal, relations, monthlyFortune, daewoonReading, dailyDetail } from './reading.js';
 import { DAY_MASTER, ELEMENT_INFO, TEN_GOD_INFO, STRENGTH_INFO, PILLAR_MEANING } from './content.js';
 
 const $ = (s) => document.querySelector(s);
@@ -237,7 +238,7 @@ function zodiacText(saju, lunar) {
 
 function renderTab() {
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === activeTab));
-  const html = { chart: tabChart, elements: tabElements, personality: tabPersonality, daewoon: tabDaewoon, fortune: tabFortune }[activeTab]();
+  const html = { chart: tabChart, elements: tabElements, personality: tabPersonality, life: tabLife, daewoon: tabDaewoon, fortune: tabFortune }[activeTab]();
   $('#tabContent').innerHTML = html;
   const cur = $('#tabContent .dw-item.current');
   if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
@@ -362,6 +363,43 @@ function tabPersonality() {
     </div>`;
 }
 
+function tabLife() {
+  const { saju, profile } = current;
+  const life = lifeReading(saju, profile.gender);
+  const colors = ['var(--wood)', 'var(--fire)', 'var(--earth)', 'var(--metal)', 'var(--water)'];
+  const groupNames = ['비겁 (나·동료)', '식상 (재능·표현)', '재성 (재물)', '관성 (직장·명예)', '인성 (학문·도움)'];
+  // 십신 그룹 색은 해당 그룹의 오행 색으로 (일간 오행부터 순서대로)
+  const dEl = stemElement(saju.dayMaster);
+  const bars = life.counts.map((c, i) => `
+    <div class="bar-row wide">
+      <span>${groupNames[i]}</span>
+      <div class="bar"><i style="width:${(c / life.total) * 100}%;background:${colors[(dEl + i) % 5]}"></i></div>
+      <b>${c}</b>
+    </div>`).join('');
+  const ss = sinsal(saju);
+  const rel = relations(saju);
+  return `
+    <div class="card">
+      <h3>십신 균형</h3>
+      <div class="bars">${bars}</div>
+    </div>
+    ${life.sections.map((sec) => `
+      <div class="card">
+        <h3>${sec.title}</h3>
+        ${sec.lines.map((l) => `<p>${l}</p>`).join('')}
+      </div>`).join('')}
+    <div class="card">
+      <h3>신살 (타고난 특별한 기운)</h3>
+      ${ss.length ? ss.map((x) => `<p><span class="tag">${x.name}</span><small class="muted">${x.where.join('·')}</small><br />${x.desc}</p>`).join('')
+        : '<p>두드러진 신살이 없는 담백한 사주입니다. 특별한 굴곡 없이 스스로의 노력으로 길을 만듭니다.</p>'}
+    </div>
+    <div class="card">
+      <h3>합과 충 (기둥끼리의 관계)</h3>
+      ${rel.length ? rel.map((r) => `<p><span class="tag">${r.type}</span>${r.text}</p>`).join('')
+        : '<p>기둥끼리 큰 합이나 충이 없어 비교적 안정적인 구조입니다.</p>'}
+    </div>`;
+}
+
 function tabDaewoon() {
   const { saju, solar } = current;
   const { daewoon } = saju;
@@ -396,7 +434,19 @@ function tabDaewoon() {
       <p class="note" style="text-align:left">${daewoon.forward ? '순행' : '역행'} · 대운수 ${daewoon.startAge} (한국 나이 기준)</p>
       <div class="dw-scroll">${items}</div>
     </div>
-    ${curInfo}`;
+    ${curInfo}
+    <div class="card">
+      <h3>대운별 풀이</h3>
+      ${daewoon.list.map((p, i) => {
+        const r = daewoonReading(saju, p);
+        const next = daewoon.list[i + 1];
+        const isCur = age >= p.age && (!next || age < next.age);
+        return `<div class="dw-row${isCur ? ' current' : ''}">
+          <div class="dw-row-head"><b>${p.age}~${p.age + 9}세</b> ${pillarName(p)} <span class="tag">${r.god}</span><span class="muted">${r.toneText}</span></div>
+          <p>${r.text}</p>
+        </div>`;
+      }).join('')}
+    </div>`;
 }
 
 function tabFortune() {
@@ -410,12 +460,20 @@ function tabFortune() {
   const ygb = tenGod(dm, BRANCH_MAIN_STEM[yp.branch]);
   const score = luckScore(today);
   const helpful = saju.strength.helpful[0];
+  const daily = dailyDetail(tg);
+  const months = monthlyFortune(saju, year);
   return `
     <div class="card">
       <h3>오늘의 운세 · ${pillarName(today)}(${pillarName(today, 'ko')})일</h3>
       <div class="fortune-big">${'★'.repeat(score)}${'☆'.repeat(5 - score)}</div>
       <p><span class="tag">${tg}</span> ${TEN_GOD_INFO[tg].short}</p>
       <p>${TEN_GOD_INFO[tg].fortune}</p>
+      <dl class="kv" style="margin-top:10px">
+        <dt>재물</dt><dd>${daily.money}</dd>
+        <dt>애정</dt><dd>${daily.love}</dd>
+        <dt>일·학업</dt><dd>${daily.work}</dd>
+        <dt>한마디</dt><dd><b>${daily.advice}</b></dd>
+      </dl>
       <dl class="kv" style="margin-top:10px">
         <dt>행운 색</dt><dd>${ELEMENT_INFO[helpful].color}</dd>
         <dt>행운 방향</dt><dd>${ELEMENT_INFO[helpful].direction}</dd>
@@ -427,6 +485,14 @@ function tabFortune() {
       <p><span class="tag">천간 ${yg}</span><span class="tag">지지 ${ygb}</span></p>
       <p>${TEN_GOD_INFO[yg].fortune}</p>
       <p>${TEN_GOD_INFO[ygb].fortune}</p>
+    </div>
+    <div class="card">
+      <h3>${year}년 월별 운세</h3>
+      <p class="note" style="text-align:left">사주의 달은 절기(입춘·경칩 …)로 바뀝니다.</p>
+      ${months.map((m) => `<div class="month-row">
+        <div class="month-head"><b>${m.label}</b> ${m.ganzi} <span class="tag">${m.god}</span><span class="stars">${'★'.repeat(m.score)}${'☆'.repeat(5 - m.score)}</span></div>
+        <p>${m.text}</p>
+      </div>`).join('')}
     </div>`;
 }
 

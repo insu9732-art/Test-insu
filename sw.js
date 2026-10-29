@@ -1,5 +1,5 @@
 // 오프라인 캐시 — 파일을 바꾸면 VERSION을 올려 주세요
-const VERSION = 'saju-v2';
+const VERSION = 'saju-v3';
 const ASSETS = [
   './',
   'index.html',
@@ -8,6 +8,7 @@ const ASSETS = [
   'js/app.js',
   'js/saju.js',
   'js/content.js',
+  'js/reading.js',
   'icons/icon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
