@@ -23,12 +23,13 @@
   </header>
   <nav class="menubar" aria-label="메뉴">
     <button data-go="home">처음(<u>H</u>)</button>
-    <button data-go="input" data-lock>사주·토정(<u>S</u>)</button>
+    <button data-go="input" data-lock>사주풀이(<u>S</u>)</button>
+    <button data-go="input" data-tab="tojung" data-lock>토정비결(<u>T</u>)</button>
+    <button data-go="today" data-lock>오늘운세(<u>U</u>)</button>
     <button data-go="dream" data-lock>꿈해몽(<u>D</u>)</button>
     <button data-go="naming" data-lock>작명소(<u>N</u>)</button>
     <button data-go="manse" data-lock>만세력(<u>M</u>)</button>
     <button data-go="saved" data-lock>보관함(<u>F</u>)</button>
-    <button data-go="settings">설정(<u>O</u>)</button>
   </nav>
   <div class="adbar" id="adBar" hidden>
     <a id="adBanner" href="#" target="_blank" rel="noopener sponsored">
@@ -59,7 +60,6 @@
             <button data-go="manse" data-lock><span class="glyph">曆</span>만세력</button>
             <button data-go="today" data-lock><span class="glyph">日</span>오늘운세</button>
             <button data-go="saved" data-lock><span class="glyph">藏</span>보관함</button>
-            <button data-go="settings"><span class="glyph">設</span>설정</button>
           </div>
           <p class="note">재미와 참고용입니다. 중요한 결정은 스스로의 판단으로 하세요.</p>
         </div>
@@ -211,35 +211,6 @@
           </div>
           <p class="error" id="manseError" role="alert"></p>
           <div id="manseResult"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 설정 -->
-    <section id="settingsView" class="view" hidden>
-      <div class="win">
-        <div class="win-title">설정</div>
-        <div class="win-body">
-          <fieldset class="group">
-            <legend>쿠팡 배너 링크</legend>
-            <input type="text" id="setUrl" inputmode="url" placeholder="https://link.coupang.com/a/..." autocomplete="off" />
-          </fieldset>
-          <fieldset class="group">
-            <legend>배너 문구</legend>
-            <input type="text" id="setText" maxlength="30" placeholder="오늘의 특가 보러 가기" autocomplete="off" />
-          </fieldset>
-          <fieldset class="group">
-            <legend>이용 잠금</legend>
-            <select id="setLock">
-              <option value="1">앱을 켤 때마다 배너를 눌러야 이용</option>
-              <option value="0">잠그지 않음 (배너만 보이기)</option>
-            </select>
-          </fieldset>
-          <p class="note" id="setNotice"></p>
-          <div class="dlg-buttons">
-            <button type="button" class="btn-big" id="setSave"><span class="ok">✔</span> 저장</button>
-            <button type="button" class="btn-big" id="setTest">배너 시험</button>
-          </div>
         </div>
       </div>
     </section>

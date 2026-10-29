@@ -19,11 +19,11 @@ const form = $('#sajuForm');
 const views = {
   home: $('#homeView'), input: $('#inputView'), result: $('#resultView'),
   dream: $('#dreamView'), naming: $('#namingView'), saved: $('#savedView'),
-  manse: $('#manseView'), settings: $('#settingsView'),
+  manse: $('#manseView'),
 };
 const VIEW_TITLE = {
   home: '준비', input: '생년월일시를 입력하세요', result: '사주 풀이', dream: '꿈해몽',
-  naming: '작명소', saved: '보관함', manse: '만세력', settings: '설정',
+  naming: '작명소', saved: '보관함', manse: '만세력',
 };
 let current = null; // { profile, saju, solar }
 let activeTab = 'chart';
@@ -36,8 +36,9 @@ function show(name, { push = true } = {}) {
   for (const [k, el] of Object.entries(views)) el.hidden = k !== name;
   if (push && navStack[navStack.length - 1] !== name) navStack.push(name);
   $('#backBtn').style.visibility = navStack.length > 1 ? 'visible' : 'hidden';
-  $('#statusText').textContent = VIEW_TITLE[name] || '준비';
-  document.querySelectorAll('.menubar button').forEach((b) => b.classList.toggle('active', b.dataset.go === name || (name === 'result' && b.dataset.go === 'input')));
+  $('#statusText').textContent = name === 'result' ? GROUP_TITLE[TAB_GROUP[activeTab] || 'saju'] : VIEW_TITLE[name] || '준비';
+  document.querySelectorAll('.menubar button').forEach((b) => b.classList.toggle('active', b.dataset.go === name
+    || (name === 'result' && (b.dataset.go === 'today' ? activeTab === 'fortune' : b.dataset.go === 'input' && (b.dataset.tab === 'tojung') === (activeTab === 'tojung') && activeTab !== 'fortune'))));
   if (name === 'saved') renderSaved();
   if (name === 'dream') renderDreams();
   window.scrollTo(0, 0);
@@ -66,7 +67,6 @@ function go(target, tab) {
   if (target === 'home') navStack.length = 0;
   if (target === 'naming') prepareNaming();
   if (target === 'manse' && !$('#manseResult').innerHTML) showManse(todayBirth());
-  if (target === 'settings') fillSettings();
   show(target);
 }
 
@@ -277,7 +277,7 @@ function renderResult() {
     ? `${profile.time} 출생${saju.localTime ? ` (보정 ${saju.localTime})` : ''}${saju.dst ? ' · 서머타임 반영' : ''}`
     : '시간 모름';
   $('#profileCard').innerHTML = `
-    <h2>${esc(profile.name || '나')}의 사주 <span class="tag">${profile.gender === 'male' ? '남' : '여'}</span></h2>
+    <h2>${esc(profile.name || '나')}의 <span class="what">사주풀이</span> <span class="tag">${profile.gender === 'male' ? '남' : '여'}</span></h2>
     <p>${dateStr}${lunarStr}</p>
     <p>${timeStr}</p>
     <p>${zodiacText(saju, lunar)} · 일간 <b>${STEMS[dm]}(${STEMS_KO[dm]}${ELEMENTS_HANJA[stemElement(dm)]})</b> · ${saju.strength.label}</p>
@@ -293,8 +293,20 @@ function zodiacText(saju, lunar) {
     : `${byLunar}띠 (사주는 입춘 기준 ${saju.zodiac}해)`;
 }
 
+const TAB_GROUP = { tojung: 'tojung', fortune: 'fortune' };
+const GROUP_TITLE = { saju: '사주풀이', tojung: '토정비결', fortune: '오늘운세' };
+
 function renderTab() {
-  document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === activeTab));
+  // 메뉴와 화면을 1:1로: 토정비결·운세는 그 탭만, 사주풀이는 사주 탭들만
+  const group = TAB_GROUP[activeTab] || 'saju';
+  document.querySelectorAll('.tabs button').forEach((b) => {
+    b.classList.toggle('active', b.dataset.tab === activeTab);
+    b.hidden = (TAB_GROUP[b.dataset.tab] || 'saju') !== group;
+  });
+  $('.tabs').hidden = group !== 'saju';
+  const what = $('#profileCard .what');
+  if (what) what.textContent = GROUP_TITLE[group];
+  $('#statusText').textContent = GROUP_TITLE[group];
   const html = { chart: tabChart, elements: tabElements, personality: tabPersonality, life: tabLife, tojung: tabTojung, daewoon: tabDaewoon, fortune: tabFortune }[activeTab]();
   $('#tabContent').innerHTML = html;
   const cur = $('#tabContent .dw-item.current');
@@ -1102,7 +1114,6 @@ $('#manseToday').addEventListener('click', () => {
 
 // ---------- 쿠팡 배너·잠금 ----------
 
-const SETTINGS_KEY = 'saju.settings.v1';
 // 잠금은 앱을 켤 때마다 새로 걸린다 (저장하지 않음). 오래 밖에 나가 있다 돌아와도 다시 건다.
 const RELOCK_AFTER = 30 * 60000;
 let unlocked = false;
@@ -1110,13 +1121,10 @@ let hiddenAt = 0;
 try { localStorage.removeItem('saju.unlockUntil'); } catch { /* 예전 버전의 시간제 잠금 */ }
 const LOCKED_VIEWS = { input: '사주풀이', dream: '꿈해몽', naming: '작명', manse: '만세력', today: '오늘운세', saved: '보관함' };
 
+// 링크·문구는 js/config.js에 넣어 둔 값만 쓴다 (예전 버전의 설정 화면 값은 지운다)
+try { localStorage.removeItem('saju.settings.v1'); } catch { /* 무시 */ }
 function settings() {
-  let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch { /* 기본값 */ }
-  // 비워 둔 칸은 앱에 넣어 둔 기본 링크·문구를 쓴다
-  for (const k of ['coupangUrl', 'bannerText']) if (!saved[k]) delete saved[k];
-  delete saved.unlockHours; // 예전 설정
-  return { ...APP_CONFIG, ...saved };
+  return APP_CONFIG;
 }
 
 function isUnlocked() {
@@ -1181,30 +1189,6 @@ function renderAd() {
 $('#adBanner').addEventListener('click', openAd);
 $('#gateAd').addEventListener('click', openAd);
 $('#gateClose').addEventListener('click', () => { $('#gate').hidden = true; pendingAction = null; });
-
-function fillSettings() {
-  const cfg = settings();
-  $('#setUrl').value = cfg.coupangUrl || '';
-  $('#setText').value = cfg.bannerText || '';
-  $('#setLock').value = cfg.lock ? '1' : '0';
-  $('#setNotice').textContent = `배너 아래에 "${COUPANG_NOTICE}" 문구가 함께 표시됩니다.`;
-}
-
-$('#setSave').addEventListener('click', () => {
-  const url = $('#setUrl').value.trim();
-  if (url && !/^https?:\/\//.test(url)) { toast('링크는 https:// 로 시작해야 해요'); return; }
-  const next = { coupangUrl: url, bannerText: $('#setText').value.trim(), lock: $('#setLock').value === '1' };
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch { toast('저장할 수 없어요'); return; }
-  unlocked = false;
-  renderAd();
-  toast(url ? '저장했어요. 위쪽에 배너가 보입니다' : '저장했어요. 링크를 비우면 기본 링크를 씁니다');
-});
-$('#setTest').addEventListener('click', () => {
-  unlocked = false;
-  renderAd();
-  requireUnlock('사주풀이', () => toast('잠금이 풀렸어요'));
-  if (isUnlocked()) toast('링크가 없거나 잠그지 않음으로 되어 있어요');
-});
 
 renderAd();
 document.addEventListener('visibilitychange', () => {
