@@ -27,12 +27,31 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      # 서명 키를 빌드 사이에 유지해야 새 APK 가 기존 앱 위에 업데이트 설치된다
+      # 서명 키를 빌드 사이에 유지해야 새 APK 가 기존 앱 위에 업데이트 설치된다.
+      # 저장소 비밀값 SAJU_KEYSTORE_B64 가 있으면 그것을 쓰고(영구), 없으면 캐시에 둔 키를 쓴다.
       - name: Restore signing key
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: saju-debug-keystore-v1
+          path: ~/saju-signing
+          key: saju-signing-v1
+
+      - name: Prepare signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.SAJU_KEYSTORE_B64 }}
+          KEY_PASS: ${{ secrets.SAJU_KEY_PASS }}
+        run: |
+          mkdir -p ~/saju-signing
+          PASS="${KEY_PASS:-saju-signing-key}"
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > ~/saju-signing/saju.jks
+          elif [ ! -f ~/saju-signing/saju.jks ]; then
+            keytool -genkeypair -keystore ~/saju-signing/saju.jks -alias saju -keyalg RSA -keysize 2048 \
+              -validity 36500 -storepass "$PASS" -keypass "$PASS" -dname "CN=Insu Tojeong, O=insu9732-art, C=KR"
+            echo "새 서명 키를 만들었습니다"
+          fi
+          keytool -list -v -keystore ~/saju-signing/saju.jks -storepass "$PASS" | grep -m1 'SHA256:'
+          echo "SAJU_KEYSTORE=$HOME/saju-signing/saju.jks" >> "$GITHUB_ENV"
+          echo "SAJU_KEY_PASS=$PASS" >> "$GITHUB_ENV"
 
       - name: Test saju engine
         run: npm test

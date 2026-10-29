@@ -15,11 +15,24 @@ android {
         versionName "1.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
     }
 
+    // 업데이트 설치가 되려면 모든 빌드가 같은 키로 서명돼야 한다.
+    // 워크플로가 SAJU_KEYSTORE(고정 키 파일)를 넘겨 주고, 없으면(내 컴퓨터 빌드) 디버그 키를 쓴다.
+    def keystore = System.getenv('SAJU_KEYSTORE')
+    signingConfigs {
+        if (keystore) {
+            saju {
+                storeFile file(keystore)
+                storePassword System.getenv('SAJU_KEY_PASS')
+                keyAlias 'saju'
+                keyPassword System.getenv('SAJU_KEY_PASS')
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
-            // 개인 설치용: 디버그 키로 서명 (워크플로가 키를 캐시해 빌드마다 같은 키를 쓴다)
-            signingConfig signingConfigs.debug
+            signingConfig keystore ? signingConfigs.saju : signingConfigs.debug
         }
     }
 
