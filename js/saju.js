@@ -133,6 +133,13 @@ for (let i = 0; i * 6 < LUNAR_DATA.length; i++) {
   LUNAR_YEARS.push({ year, start: Date.UTC(year, 0, 1) + parseInt(row.slice(0, 2), 36) * 86400000, months });
 }
 
+// 음력 y년 m월(윤달 여부)의 날수. 없는 달이면 0
+export function lunarMonthDays(y, m, leap = false) {
+  const info = LUNAR_YEARS[y - LUNAR_FIRST_YEAR];
+  const mo = info && info.months.find((x) => x.month === m && x.leap === !!leap);
+  return mo ? mo.days : 0;
+}
+
 export function lunarToSolar(y, m, d, leap = false) {
   const info = LUNAR_YEARS[y - LUNAR_FIRST_YEAR];
   if (!info) return null;

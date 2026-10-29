@@ -3,6 +3,8 @@ import {
   stemElement, calculateSaju, lunarToSolar, solarToLunar, tenGod, pillarName,
   yearPillarOf, todayPillar,
 } from './saju.js';
+import { tojungOf } from './tojung.js';
+import { ZODIAC_LIFE } from './zodiac-life.js';
 import { lifeReading, sinsal, relations, monthlyFortune, daewoonReading, dailyDetail } from './reading.js';
 import { DAY_MASTER, ELEMENT_INFO, TEN_GOD_INFO, STRENGTH_INFO, PILLAR_MEANING } from './content.js';
 
@@ -238,7 +240,7 @@ function zodiacText(saju, lunar) {
 
 function renderTab() {
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === activeTab));
-  const html = { chart: tabChart, elements: tabElements, personality: tabPersonality, life: tabLife, daewoon: tabDaewoon, fortune: tabFortune }[activeTab]();
+  const html = { chart: tabChart, elements: tabElements, personality: tabPersonality, life: tabLife, tojung: tabTojung, daewoon: tabDaewoon, fortune: tabFortune }[activeTab]();
   $('#tabContent').innerHTML = html;
   const cur = $('#tabContent .dw-item.current');
   if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
@@ -338,6 +340,11 @@ function tabElements() {
     </div>`;
 }
 
+function lunarBirth() {
+  const { solar } = current;
+  return solarToLunar(solar.year, solar.month, solar.day);
+}
+
 function tabPersonality() {
   const { saju } = current;
   const info = DAY_MASTER[saju.dayMaster];
@@ -360,7 +367,8 @@ function tabPersonality() {
     <div class="card">
       <h3>배우자 자리 (일지 ${BRANCHES[dayBranch]} · ${spouseGod})</h3>
       <p>배우자 자리에 <b>${spouseGod}</b>(${TEN_GOD_INFO[spouseGod].meaning})이(가) 있어, 관계에서도 이런 기운을 주고받는 경향이 있습니다.</p>
-    </div>`;
+    </div>
+    ${zodiacLifeCard()}`;
 }
 
 function tabLife() {
@@ -399,6 +407,55 @@ function tabLife() {
         : '<p>기둥끼리 큰 합이나 충이 없어 비교적 안정적인 구조입니다.</p>'}
     </div>`;
 }
+
+function zodiacLifeCard() {
+  const lunar = lunarBirth();
+  const b = (((lunar.year - 4) % 12) + 12) % 12;
+  const z = ZODIAC_LIFE[b];
+  return `
+    <div class="card">
+      <h3>${ZODIAC[b]}띠 평생운 · ${z.image}</h3>
+      <p>${z.nature}</p>
+      <p><b>인생의 흐름</b><br />${z.flow}</p>
+      <p><b>삶의 조언</b><br />${z.advice}</p>
+    </div>`;
+}
+
+let tojungYear = new Date().getFullYear();
+
+function tabTojung() {
+  const lunar = lunarBirth();
+  const t = tojungOf(lunar, tojungYear);
+  const thisYear = new Date().getFullYear();
+  const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+  const yp = yearPillarOf(tojungYear);
+  return `
+    <div class="year-switch">
+      ${[thisYear, thisYear + 1].map((y) => `<button type="button" data-year="${y}" class="${y === tojungYear ? 'active' : ''}">${y}년</button>`).join('')}
+    </div>
+    <div class="card">
+      <h3>${tojungYear}년 토정비결 · ${pillarName(yp)}(${pillarName(yp, 'ko')})년</h3>
+      <p class="note" style="text-align:left">음력 ${lunar.month}월 ${lunar.day}일생 · ${t.age}세 · ${t.code}괘</p>
+      ${t.verseKo ? `<p class="verse">${t.verseKo}${t.verseHanja ? `<small>${t.verseHanja}</small>` : ''}</p>` : ''}
+      <div class="fortune-big">${stars(t.score)}</div>
+      <p>${t.total}</p>
+    </div>
+    <div class="card">
+      <h3>달마다 보는 운세 (음력)</h3>
+      ${t.months.map((m, i) => `<div class="month-row">
+        <div class="month-head"><b>${i + 1}월</b><span class="stars">${stars(m.score)}</span></div>
+        <p>${m.text}</p>
+      </div>`).join('')}
+    </div>
+    <p class="note">토정비결은 이지함 선생의 비결을 바탕으로 한 전통 신수풀이이며, 풀이 문장은 이 앱에서 새로 썼습니다.</p>`;
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.year-switch button');
+  if (!b) return;
+  tojungYear = Number(b.dataset.year);
+  renderTab();
+});
 
 function tabDaewoon() {
   const { saju, solar } = current;

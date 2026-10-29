@@ -80,3 +80,31 @@ test('음력 1981년 1월 29일 = 양력 1981년 3월 5일, 30일은 없음', ()
   assert.deepEqual(lunarToSolar(1981, 1, 29), { year: 1981, month: 3, day: 5 });
   assert.equal(lunarToSolar(1981, 1, 30), null);
 });
+
+test('토정비결: 괘 번호가 범위 안이고 데이터가 모두 있다', async () => {
+  const { tojungOf } = await import('../js/tojung.js');
+  const { TOJUNG } = await import('../js/tojung-data.js');
+  assert.equal(TOJUNG.length, 144);
+  for (const x of TOJUNG) {
+    assert.equal(x.m.length, 12);
+    assert.ok(x.s >= 1 && x.s <= 5 && x.t.length > 20);
+  }
+  const seen = new Set();
+  for (let m = 1; m <= 12; m++) {
+    for (let d = 1; d <= 30; d++) {
+      for (const by of [1950, 1963, 1977, 1981, 1994, 2008]) {
+        const t = tojungOf({ year: by, month: m, day: d }, 2026);
+        assert.match(t.code, /^[1-8][1-6][1-3]$/);
+        assert.equal(t.months.length, 12);
+        seen.add(t.code);
+      }
+    }
+  }
+  assert.ok(seen.size > 100, `${seen.size}`); // 대부분의 괘가 나온다
+});
+
+test('토정비결: 상괘 = (나이 + 태세수) % 8', async () => {
+  const { tojungOf } = await import('../js/tojung.js');
+  // 2026 丙午년: 丙7 + 午9 = 16, 1981년생 46세 → (46 + 16) % 8 = 6
+  assert.equal(tojungOf({ year: 1981, month: 1, day: 29 }, 2026).code[0], '6');
+});

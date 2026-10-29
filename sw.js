@@ -1,5 +1,5 @@
 // 오프라인 캐시 — 파일을 바꾸면 VERSION을 올려 주세요
-const VERSION = 'saju-v4';
+const VERSION = 'saju-v5';
 const ASSETS = [
   './',
   'index.html',
@@ -10,6 +10,9 @@ const ASSETS = [
   'js/lunar-data.js',
   'js/content.js',
   'js/reading.js',
+  'js/tojung.js',
+  'js/tojung-data.js',
+  'js/zodiac-life.js',
   'icons/icon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
