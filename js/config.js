@@ -3,8 +3,8 @@
 export const APP_CONFIG = {
   coupangUrl: 'https://link.coupang.com/a/hTSmW4HeI8',
   bannerText: '오늘의 특가 보러 가기',
-  // 배너를 누른 뒤 사주풀이·꿈해몽·작명을 쓸 수 있는 시간(시간 단위). 0이면 잠그지 않음
-  unlockHours: 24,
+  // true면 앱을 켤 때마다 배너를 한 번 눌러야 사주풀이·토정비결·꿈해몽·작명을 쓸 수 있다
+  lock: true,
 };
 
 // 쿠팡 파트너스 활동 고지 문구 (파트너스 링크를 쓰는 곳에 반드시 표시)

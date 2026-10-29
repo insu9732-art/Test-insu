@@ -23,9 +23,9 @@
   </header>
   <nav class="menubar" aria-label="메뉴">
     <button data-go="home">처음(<u>H</u>)</button>
-    <button data-go="input">사주·토정(<u>S</u>)</button>
-    <button data-go="dream">꿈해몽(<u>D</u>)</button>
-    <button data-go="naming">작명소(<u>N</u>)</button>
+    <button data-go="input" data-lock>사주·토정(<u>S</u>)</button>
+    <button data-go="dream" data-lock>꿈해몽(<u>D</u>)</button>
+    <button data-go="naming" data-lock>작명소(<u>N</u>)</button>
     <button data-go="manse">만세력(<u>M</u>)</button>
     <button data-go="saved">보관함(<u>F</u>)</button>
     <button data-go="settings">설정(<u>O</u>)</button>
@@ -52,10 +52,10 @@
             </div>
           </div>
           <div class="launcher">
-            <button data-go="input"><span class="glyph">四柱</span>사주풀이</button>
-            <button data-go="input" data-tab="tojung"><span class="glyph">土亭</span>토정비결</button>
-            <button data-go="dream"><span class="glyph">夢</span>꿈해몽</button>
-            <button data-go="naming"><span class="glyph">名</span>작명소</button>
+            <button data-go="input" data-lock><span class="glyph">四柱</span>사주풀이</button>
+            <button data-go="input" data-tab="tojung" data-lock><span class="glyph">土亭</span>토정비결</button>
+            <button data-go="dream" data-lock><span class="glyph">夢</span>꿈해몽</button>
+            <button data-go="naming" data-lock><span class="glyph">名</span>작명소</button>
             <button data-go="manse"><span class="glyph">曆</span>만세력</button>
             <button data-go="today"><span class="glyph">日</span>오늘운세</button>
             <button data-go="saved"><span class="glyph">藏</span>보관함</button>
@@ -229,13 +229,10 @@
             <input type="text" id="setText" maxlength="30" placeholder="오늘의 특가 보러 가기" autocomplete="off" />
           </fieldset>
           <fieldset class="group">
-            <legend>배너를 누른 뒤 열어 둘 시간</legend>
-            <select id="setHours">
+            <legend>이용 잠금</legend>
+            <select id="setLock">
+              <option value="1">앱을 켤 때마다 배너를 눌러야 이용</option>
               <option value="0">잠그지 않음 (배너만 보이기)</option>
-              <option value="1">1시간</option>
-              <option value="6">6시간</option>
-              <option value="24">24시간</option>
-              <option value="72">3일</option>
             </select>
           </fieldset>
           <p class="note" id="setNotice"></p>

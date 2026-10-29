@@ -55,13 +55,16 @@ function go(target, tab) {
     if (current) { activeTab = 'fortune'; renderTab(); show('result'); } else { pendingTab = 'fortune'; show('input'); }
     return;
   }
+  if (LOCKED_VIEWS[target] && !isUnlocked()) {
+    requireUnlock(tab === 'tojung' ? '토정비결' : LOCKED_VIEWS[target], () => go(target, tab));
+    return;
+  }
   if (target === 'input') {
     pendingTab = tab || 'chart';
     if (current && tab) { activeTab = tab; renderTab(); show('result'); return; }
   }
   if (target === 'home') navStack.length = 0;
   if (target === 'naming') prepareNaming();
-  if (target === 'dream') { requireUnlock('꿈해몽', () => show('dream')); return; }
   if (target === 'manse' && !$('#manseResult').innerHTML) showManse(todayBirth());
   if (target === 'settings') fillSettings();
   show(target);
@@ -702,7 +705,7 @@ async function renderSaved() {
     </li>`).join('');
   ul.querySelectorAll('.open').forEach((b) => b.addEventListener('click', () => {
     const p = list.find((x) => x.id === b.dataset.id);
-    if (p) openProfile(p);
+    if (p) requireUnlock('사주풀이', () => openProfile(p));
   }));
   ul.querySelectorAll('.del').forEach((b) => b.addEventListener('click', async () => {
     await store.remove(b.dataset.id);
@@ -1100,25 +1103,29 @@ $('#manseToday').addEventListener('click', () => {
 // ---------- 쿠팡 배너·잠금 ----------
 
 const SETTINGS_KEY = 'saju.settings.v1';
-const UNLOCK_KEY = 'saju.unlockUntil';
+// 잠금은 앱을 켤 때마다 새로 걸린다 (저장하지 않음). 오래 밖에 나가 있다 돌아와도 다시 건다.
+const RELOCK_AFTER = 30 * 60000;
+let unlocked = false;
+let hiddenAt = 0;
+try { localStorage.removeItem('saju.unlockUntil'); } catch { /* 예전 버전의 시간제 잠금 */ }
+const LOCKED_VIEWS = { input: '사주풀이', dream: '꿈해몽', naming: '작명' };
 
 function settings() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch { /* 기본값 */ }
   // 비워 둔 칸은 앱에 넣어 둔 기본 링크·문구를 쓴다
   for (const k of ['coupangUrl', 'bannerText']) if (!saved[k]) delete saved[k];
+  delete saved.unlockHours; // 예전 설정
   return { ...APP_CONFIG, ...saved };
 }
 
 function isUnlocked() {
   const cfg = settings();
-  if (!cfg.coupangUrl || !Number(cfg.unlockHours)) return true;
-  try { return Number(localStorage.getItem(UNLOCK_KEY) || 0) > Date.now(); } catch { return true; }
+  return !cfg.coupangUrl || !cfg.lock || unlocked;
 }
 
 function unlock() {
-  const hours = Number(settings().unlockHours) || 0;
-  try { localStorage.setItem(UNLOCK_KEY, String(Date.now() + hours * 3600000)); } catch { /* 저장 못 해도 이번엔 통과 */ }
+  unlocked = true;
 }
 
 let pendingAction = null;
@@ -1141,7 +1148,7 @@ function openAd(e) {
   const wasLocked = !isUnlocked();
   unlock();
   renderAd();
-  if (wasLocked && Number(settings().unlockHours)) toast(`이용이 열렸어요! ${settings().unlockHours}시간 동안 모든 풀이를 볼 수 있어요`);
+  if (wasLocked) toast('이용이 열렸어요! 사주풀이·꿈해몽·작명을 쓸 수 있어요');
   if (!$('#gate').hidden) {
     $('#gate').hidden = true;
     const action = pendingAction;
@@ -1159,18 +1166,16 @@ function renderAd() {
   $('#gateAdText').textContent = cfg.bannerText || '오늘의 특가 보러 가기';
   $('#adNotice').textContent = COUPANG_NOTICE;
   $('#gateNotice').textContent = COUPANG_NOTICE;
-  // 배너를 눌러야 이용할 수 있다는 안내, 누른 뒤에는 남은 시간
-  const hours = Number(cfg.unlockHours) || 0;
-  let until = 0;
-  try { until = Number(localStorage.getItem(UNLOCK_KEY) || 0); } catch { /* 없음 */ }
-  const left = Math.ceil((until - Date.now()) / 3600000);
-  const open = hours && left > 0;
-  $('#adGo').textContent = !hours ? '바로가기 ▶' : open ? '이용 중 ✔' : '누르고 이용 ▶';
-  $('#adHint').hidden = !hours;
+  // 배너를 눌러야 이용할 수 있다는 안내, 누른 뒤에는 이용 중 표시
+  const locking = has && cfg.lock;
+  const open = isUnlocked();
+  document.body.classList.toggle('locked', !open);
+  $('#adGo').textContent = !locking ? '바로가기 ▶' : open ? '이용 중 ✔' : '누르고 이용 ▶';
+  $('#adHint').hidden = !locking;
   $('#adHint').className = 'ad-hint' + (open ? ' ok' : '');
   $('#adHint').textContent = open
-    ? `✔ 사주풀이·꿈해몽·작명 이용 중 (남은 시간 약 ${left}시간)`
-    : `▲ 배너를 누르면 사주풀이·꿈해몽·작명을 ${hours}시간 동안 이용할 수 있어요`;
+    ? '✔ 사주풀이·토정비결·꿈해몽·작명 이용 중 (앱을 다시 켜면 배너를 한 번 더 눌러 주세요)'
+    : '▲ 배너를 누르면 사주풀이·토정비결·꿈해몽·작명을 이용할 수 있어요';
 }
 
 $('#adBanner').addEventListener('click', openAd);
@@ -1181,27 +1186,32 @@ function fillSettings() {
   const cfg = settings();
   $('#setUrl').value = cfg.coupangUrl || '';
   $('#setText').value = cfg.bannerText || '';
-  $('#setHours').value = String(cfg.unlockHours ?? 24);
+  $('#setLock').value = cfg.lock ? '1' : '0';
   $('#setNotice').textContent = `배너 아래에 "${COUPANG_NOTICE}" 문구가 함께 표시됩니다.`;
 }
 
 $('#setSave').addEventListener('click', () => {
   const url = $('#setUrl').value.trim();
   if (url && !/^https?:\/\//.test(url)) { toast('링크는 https:// 로 시작해야 해요'); return; }
-  const next = { coupangUrl: url, bannerText: $('#setText').value.trim(), unlockHours: Number($('#setHours').value) };
+  const next = { coupangUrl: url, bannerText: $('#setText').value.trim(), lock: $('#setLock').value === '1' };
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch { toast('저장할 수 없어요'); return; }
-  try { localStorage.removeItem(UNLOCK_KEY); } catch { /* 무시 */ }
+  unlocked = false;
   renderAd();
   toast(url ? '저장했어요. 위쪽에 배너가 보입니다' : '저장했어요. 링크를 비우면 기본 링크를 씁니다');
 });
 $('#setTest').addEventListener('click', () => {
-  try { localStorage.removeItem(UNLOCK_KEY); } catch { /* 무시 */ }
+  unlocked = false;
+  renderAd();
   requireUnlock('사주풀이', () => toast('잠금이 풀렸어요'));
   if (isUnlocked()) toast('링크가 없거나 잠그지 않음으로 되어 있어요');
 });
 
 renderAd();
-document.addEventListener('visibilitychange', () => { if (!document.hidden) renderAd(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (hiddenAt && Date.now() - hiddenAt > RELOCK_AFTER) { unlocked = false; if (LOCKED_VIEWS[navStack[navStack.length - 1]] || navStack[navStack.length - 1] === 'result') go('home'); }
+  renderAd();
+});
 
 // ---------- PWA ----------
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {

@@ -493,3 +493,9 @@ main > section > .note { color: #e8eefc; }
 .manse-head dd { margin: 0; }
 .need { display: inline-block; padding: 1px 8px; margin: 0 4px 4px 0; color: #fff; font-weight: 700; font-size: 14px; }
 .btn.small { min-height: 36px; font-size: 14px; margin-top: 8px; }
+
+/* 배너를 누르기 전 잠긴 버튼 */
+body.locked [data-lock] { position: relative; color: #8a8a8a; }
+body.locked [data-lock] .glyph { filter: grayscale(1); opacity: .45; }
+body.locked .launcher [data-lock]::after { content: "🔒"; position: absolute; top: 4px; right: 6px; font-size: 16px; }
+body.locked .menubar [data-lock]::before { content: "🔒"; font-size: 12px; margin-right: 2px; }
