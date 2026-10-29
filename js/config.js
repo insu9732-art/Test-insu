@@ -5,6 +5,8 @@ export const APP_CONFIG = {
   bannerText: '오늘의 특가 보러 가기',
   // true면 앱을 켤 때마다 배너를 한 번 눌러야 사주풀이·토정비결·꿈해몽·작명을 쓸 수 있다
   lock: true,
+  // 원격 배너 목록: 이 파일(저장소의 ads.json)을 고치면 앱을 다시 만들지 않아도 링크가 바뀐다
+  adsUrl: 'https://raw.githubusercontent.com/insu9732-art/Test-insu/claude/saju-mobile-app-jxaxvl/ads.json',
 };
 
 // 쿠팡 파트너스 활동 고지 문구 (파트너스 링크를 쓰는 곳에 반드시 표시)

@@ -1,0 +1,7 @@
+{
+  "설명": "앱이 켜질 때마다 이 파일을 읽어 아래 links 중 하나를 무작위로 배너에 씁니다. 링크를 더하거나 바꾸고 저장(Commit)하면 5분쯤 뒤부터 반영됩니다.",
+  "lock": true,
+  "links": [
+    { "url": "https://link.coupang.com/a/hTSmW4HeI8", "text": "오늘의 특가 보러 가기" }
+  ]
+}

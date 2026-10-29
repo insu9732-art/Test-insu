@@ -1121,10 +1121,42 @@ let hiddenAt = 0;
 try { localStorage.removeItem('saju.unlockUntil'); } catch { /* 예전 버전의 시간제 잠금 */ }
 const LOCKED_VIEWS = { input: '사주풀이', dream: '꿈해몽', naming: '작명', manse: '만세력', today: '오늘운세', saved: '보관함' };
 
-// 링크·문구는 js/config.js에 넣어 둔 값만 쓴다 (예전 버전의 설정 화면 값은 지운다)
-try { localStorage.removeItem('saju.settings.v1'); } catch { /* 무시 */ }
+// 배너 링크: 저장소의 ads.json 목록에서 앱을 켤 때마다 하나를 무작위로 고른다.
+// 받아 오지 못하면 지난번에 받은 목록, 그것도 없으면 config.js의 기본 링크를 쓴다.
+try { localStorage.removeItem('saju.settings.v1'); } catch { /* 예전 설정 화면 값 */ }
+const ADS_KEY = 'saju.ads.v1';
+let adPick = null;
+
+function cleanAds(data) {
+  if (!data || !Array.isArray(data.links)) return null;
+  const links = data.links
+    .map((l) => (typeof l === 'string' ? { url: l } : l))
+    .filter((l) => l && typeof l.url === 'string' && /^https:\/\//.test(l.url.trim()))
+    .map((l) => ({ coupangUrl: l.url.trim(), bannerText: typeof l.text === 'string' && l.text.trim() ? l.text.trim().slice(0, 30) : APP_CONFIG.bannerText }));
+  return links.length ? { links, lock: data.lock !== false } : null;
+}
+
+function pickAd(ads) {
+  if (!ads) return;
+  adPick = { ...ads.links[Math.floor(Math.random() * ads.links.length)], lock: ads.lock };
+}
+
+try { pickAd(cleanAds(JSON.parse(localStorage.getItem(ADS_KEY)))); } catch { /* 처음 */ }
+
 function settings() {
-  return APP_CONFIG;
+  return { ...APP_CONFIG, ...(adPick || {}) };
+}
+
+async function loadRemoteAds() {
+  if (!APP_CONFIG.adsUrl) return;
+  try {
+    const res = await fetch(`${APP_CONFIG.adsUrl}?t=${Math.floor(Date.now() / 300000)}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const ads = cleanAds(await res.json());
+    if (!ads) return;
+    try { localStorage.setItem(ADS_KEY, JSON.stringify({ lock: ads.lock, links: ads.links.map((l) => ({ url: l.coupangUrl, text: l.bannerText })) })); } catch { /* 무시 */ }
+    if (!unlocked) { pickAd(ads); renderAd(); } // 배너를 이미 눌렀으면 이번에는 그대로
+  } catch { /* 오프라인 등: 가지고 있는 링크로 */ }
 }
 
 function isUnlocked() {
@@ -1191,9 +1223,10 @@ $('#gateAd').addEventListener('click', openAd);
 $('#gateClose').addEventListener('click', () => { $('#gate').hidden = true; pendingAction = null; });
 
 renderAd();
+loadRemoteAds();
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { hiddenAt = Date.now(); return; }
-  if (hiddenAt && Date.now() - hiddenAt > RELOCK_AFTER) { unlocked = false; if (LOCKED_VIEWS[navStack[navStack.length - 1]] || navStack[navStack.length - 1] === 'result') { navStack.length = 0; show('home'); } }
+  if (hiddenAt && Date.now() - hiddenAt > RELOCK_AFTER) { unlocked = false; loadRemoteAds(); if (LOCKED_VIEWS[navStack[navStack.length - 1]] || navStack[navStack.length - 1] === 'result') { navStack.length = 0; show('home'); } }
   renderAd();
 });
 
