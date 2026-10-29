@@ -1,7 +1,7 @@
 // 앱 기본 설정. 쿠팡 파트너스 링크를 받으면 여기에 넣고 다시 빌드한다.
 // (앱의 설정 화면에서 바꾼 값이 있으면 그 값이 우선)
 export const APP_CONFIG = {
-  coupangUrl: '',
+  coupangUrl: 'https://link.coupang.com/a/hTSmW4HeI8',
   bannerText: '오늘의 특가 보러 가기',
   // 배너를 누른 뒤 사주풀이·꿈해몽·작명을 쓸 수 있는 시간(시간 단위). 0이면 잠그지 않음
   unlockHours: 24,

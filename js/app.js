@@ -1105,6 +1105,8 @@ const UNLOCK_KEY = 'saju.unlockUntil';
 function settings() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch { /* 기본값 */ }
+  // 비워 둔 칸은 앱에 넣어 둔 기본 링크·문구를 쓴다
+  for (const k of ['coupangUrl', 'bannerText']) if (!saved[k]) delete saved[k];
   return { ...APP_CONFIG, ...saved };
 }
 
@@ -1175,7 +1177,7 @@ $('#setSave').addEventListener('click', () => {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch { toast('저장할 수 없어요'); return; }
   try { localStorage.removeItem(UNLOCK_KEY); } catch { /* 무시 */ }
   renderAd();
-  toast(url ? '저장했어요. 위쪽에 배너가 보입니다' : '저장했어요. 링크가 없으면 배너가 숨겨집니다');
+  toast(url ? '저장했어요. 위쪽에 배너가 보입니다' : '저장했어요. 링크를 비우면 기본 링크를 씁니다');
 });
 $('#setTest').addEventListener('click', () => {
   try { localStorage.removeItem(UNLOCK_KEY); } catch { /* 무시 */ }
