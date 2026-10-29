@@ -124,6 +124,11 @@ test('꿈해몽 검색과 작명 추천', async () => {
   const { searchDreams } = await import('../js/dreams.js');
   const { suggestNames, analyzeName, HANJA } = await import('../js/naming.js');
   assert.equal(searchDreams('돼지꿈')[0].title, '돼지');
+  const r1 = searchDreams('돼지가 도망가는 꿈')[0];
+  assert.equal(r1.title, '돼지');
+  assert.match(r1.situations[0].title, /도망/);
+  assert.match(searchDreams('돼지가 죽으면')[0].situations[0].title, /죽는/);
+  assert.match(searchDreams('이빨 빠지는 꿈')[0].situations[0].title, /빠지는/);
   const kim = [{ syl: '김', ch: '金', strokes: HANJA.get('金').strokes }];
   const list = suggestNames(kim, 'female', [], 10);
   assert.equal(list.length, 10);

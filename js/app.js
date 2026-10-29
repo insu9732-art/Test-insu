@@ -4,7 +4,7 @@ import {
   yearPillarOf, todayPillar,
 } from './saju.js';
 import { tojungOf } from './tojung.js';
-import { DREAM_CATEGORIES, searchDreams } from './dreams.js';
+import { DREAM_CATEGORIES, DREAM_COUNT, searchDreams } from './dreams.js';
 import { hanjaFor, analyzeName, suggestNames, soundElement, ELEMENT_NAMES } from './naming.js';
 import { ZODIAC_LIFE } from './zodiac-life.js';
 import { lifeReading, sinsal, relations, monthlyFortune, daewoonReading, dailyDetail } from './reading.js';
@@ -722,14 +722,16 @@ function renderDreams() {
     `<button type="button" data-cat="${c}" class="${c === dreamCat ? 'active' : ''}">${c || '전체'}</button>`).join('');
   const q = $('#dreamQuery').value.trim();
   const list = searchDreams(q, dreamCat);
+  const open = q && list.length <= 3;
   $('#dreamResults').innerHTML = list.length
-    ? list.map((d) => `<div class="dream-item">
-        <b>${esc(d.title)} 꿈</b><span class="luck luck-${d.luck}">${LUCK_LABEL[d.luck]}</span>
-        ${d.keys.length > 1 ? `<span class="muted">${esc(d.keys.slice(1).join(', '))}</span>` : ''}
-        <p>${esc(d.text)}</p>
-      </div>`).join('')
+    ? list.map((d, i) => `<details class="dream-item"${open || (q && i === 0) ? ' open' : ''}>
+        <summary><b>${esc(d.title)} 꿈</b> <span class="muted">${d.situations.length}가지${d.keys.length > 1 ? ' · ' + esc(d.keys.slice(1).join(', ')) : ''}</span></summary>
+        <ul class="situations">${d.situations.map((s) => `<li class="${s.hit ? 'hit' : ''}">
+          <b>${esc(s.title)}</b><span class="luck luck-${s.luck}">${LUCK_LABEL[s.luck]}</span>
+          <p>${esc(s.text)}</p></li>`).join('')}</ul>
+      </details>`).join('')
     : `<p class="empty-msg">'${esc(q)}' 꿈은 아직 사전에 없어요. 다른 낱말로 찾아보세요.</p>`;
-  $('#statusText').textContent = `꿈해몽 · ${list.length}건`;
+  $('#statusText').textContent = q ? `꿈해몽 · ${list.length}건` : `꿈해몽 · ${DREAM_COUNT}가지 풀이`;
 }
 
 $('#dreamForm').addEventListener('submit', (e) => { e.preventDefault(); dreamCat = ''; renderDreams(); });
