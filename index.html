@@ -52,20 +52,22 @@
         </div>
 
         <label class="field">
-          <span>생년월일</span>
-          <input type="date" name="birthDate" min="1900-01-01" max="2100-12-31" value="1990-01-01" required />
+          <span>생년월일 (숫자 8자리)</span>
+          <input type="text" id="birthDate" name="birthDate" inputmode="numeric" autocomplete="bday" maxlength="10" placeholder="예) 19810129" />
+          <small class="hint" id="dateHint"></small>
         </label>
         <label class="check" id="leapRow" hidden>
-          <input type="checkbox" name="leap" /> 윤달
+          <input type="checkbox" id="leap" name="leap" /> 윤달
         </label>
 
-        <label class="field">
+        <div class="field">
           <span>태어난 시간</span>
-          <input type="time" name="birthTime" value="12:00" />
-        </label>
-        <label class="check">
-          <input type="checkbox" name="timeUnknown" /> 시간을 몰라요
-        </label>
+          <div class="sijin" id="sijinGrid" role="radiogroup" aria-label="태어난 시간"></div>
+          <label class="exact">
+            <span>정확한 시각을 알면</span>
+            <input type="text" id="birthTime" name="birthTime" inputmode="numeric" maxlength="5" placeholder="예) 1430" />
+          </label>
+        </div>
         <label class="check">
           <input type="checkbox" name="correction" checked /> 서울 기준 시차 보정 (−30분)
         </label>

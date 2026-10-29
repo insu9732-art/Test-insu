@@ -256,3 +256,24 @@ button:active { transform: scale(0.98); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 [hidden] { display: none !important; }
+
+.hint { display: block; min-height: 1.4em; margin-top: 6px; font-size: 14px; color: var(--accent); }
+.hint.bad { color: var(--fire); }
+.sijin { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sijin button {
+  min-height: 52px;
+  padding: 6px 2px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.2;
+}
+.sijin button small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+.sijin button.unknown { grid-column: 1 / -1; min-height: 44px; }
+.sijin button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.sijin button[aria-checked="true"] small { color: inherit; opacity: 0.85; }
+.exact { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.exact span { flex: 0 0 auto; font-size: 14px; color: var(--muted); }
+.exact input { flex: 1; min-width: 0; }

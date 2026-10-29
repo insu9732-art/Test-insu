@@ -28,19 +28,126 @@ $('#newBtn').addEventListener('click', () => show('input'));
 
 // ---------- 입력 폼 ----------
 
+const pad2 = (n) => String(n).padStart(2, '0');
+let sijin = null; // null: 미선택, -1: 모름, 0~11: 子~亥시
+
+// 시진 범위 (보정 켜면 30분씩 늦춰진 한국 표준시 기준)
+function sijinRange(i) {
+  const shift = form.correction.checked ? 30 : 0;
+  const start = (i * 120 - 60 + shift + 1440) % 1440;
+  const end = (start + 119) % 1440;
+  const f = (m) => `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+  return `${f(start)}~${f(end)}`;
+}
+
+function renderSijin() {
+  const grid = $('#sijinGrid');
+  grid.innerHTML = BRANCHES_KO.map((b, i) => `
+    <button type="button" role="radio" data-i="${i}" aria-checked="${sijin === i}">
+      ${b}시 <small>${sijinRange(i)}</small>
+    </button>`).join('')
+    + `<button type="button" role="radio" data-i="-1" class="unknown" aria-checked="${sijin === -1}">시간 모름</button>`;
+}
+
+$('#sijinGrid').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  sijin = Number(btn.dataset.i);
+  form.birthTime.value = '';
+  renderSijin();
+});
+
+// 숫자만 입력해도 되도록: 19810129 → 1981.01.29
+function parseDate(raw) {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+  return { y: +digits.slice(0, 4), m: +digits.slice(4, 6), d: +digits.slice(6, 8) };
+}
+
+function parseTime(raw) {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length < 3 || digits.length > 4) return null;
+  const h = +digits.slice(0, digits.length - 2);
+  const m = +digits.slice(-2);
+  if (h > 23 || m > 59) return null;
+  return { h, m };
+}
+
+function isValidSolar({ y, m, d }) {
+  const t = new Date(Date.UTC(y, m - 1, d));
+  return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+}
+
+// 입력한 날짜를 확인할 수 있게 아래에 보여준다
+function updateDateHint() {
+  const hint = $('#dateHint');
+  const digits = form.birthDate.value.replace(/\D/g, '').slice(0, 8);
+  form.birthDate.value = [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6, 8)].filter(Boolean).join('.');
+  hint.classList.remove('bad');
+  const date = parseDate(digits);
+  if (!date) { hint.textContent = ''; return null; }
+  if (date.y < 1900 || date.y > 2100) {
+    hint.textContent = '1900년 ~ 2100년 사이로 입력해 주세요';
+    hint.classList.add('bad');
+    return null;
+  }
+  if (form.calendar.value === 'lunar') {
+    const solar = date.m >= 1 && date.m <= 12 ? lunarToSolar(date.y, date.m, date.d, form.leap.checked) : null;
+    if (!solar) {
+      hint.textContent = `음력 ${date.y}년 ${form.leap.checked ? '윤' : ''}${date.m}월 ${date.d}일은 없는 날짜예요`;
+      hint.classList.add('bad');
+      return null;
+    }
+    hint.textContent = `음력 ${date.y}년 ${form.leap.checked ? '윤' : ''}${date.m}월 ${date.d}일 → 양력 ${solar.year}년 ${solar.month}월 ${solar.day}일`;
+  } else {
+    if (!isValidSolar(date)) {
+      hint.textContent = `${date.y}년 ${date.m}월 ${date.d}일은 없는 날짜예요`;
+      hint.classList.add('bad');
+      return null;
+    }
+    const lunar = solarToLunar(date.y, date.m, date.d);
+    hint.textContent = `양력 ${date.y}년 ${date.m}월 ${date.d}일 (음력 ${lunar.leap ? '윤' : ''}${lunar.month}월 ${lunar.day}일)`;
+  }
+  return date;
+}
+
+form.birthDate.addEventListener('input', updateDateHint);
+form.leap.addEventListener('change', updateDateHint);
 form.calendar.forEach((r) => r.addEventListener('change', () => {
   $('#leapRow').hidden = form.calendar.value !== 'lunar';
+  if (form.calendar.value !== 'lunar') form.leap.checked = false;
+  updateDateHint();
 }));
-form.timeUnknown.addEventListener('change', () => {
-  form.birthTime.disabled = form.timeUnknown.checked;
+form.correction.addEventListener('change', () => { syncExactTime(); renderSijin(); });
+
+// 정확한 시각을 입력하면 해당 시진을 표시
+function syncExactTime() {
+  const t = parseTime(form.birthTime.value);
+  if (!t) return;
+  const mins = t.h * 60 + t.m + (form.correction.checked ? -30 : 0);
+  sijin = Math.floor(((mins + 60 + 1440) % 1440) / 120);
+}
+form.birthTime.addEventListener('input', () => {
+  const digits = form.birthTime.value.replace(/\D/g, '').slice(0, 4);
+  form.birthTime.value = digits.length > 2 ? `${digits.slice(0, digits.length - 2)}:${digits.slice(-2)}` : digits;
+  if (parseTime(digits)) syncExactTime();
+  else if (sijin !== -1 && digits.length === 0) sijin = null;
+  renderSijin();
 });
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   $('#formError').textContent = '';
-  const [y, m, d] = (form.birthDate.value || '').split('-').map(Number);
-  if (!y || !m || !d) return fail('생년월일을 입력해 주세요.');
-  if (y < 1900 || y > 2100) return fail('1900년 ~ 2100년 사이로 입력해 주세요.');
+  if (!form.birthDate.value.trim()) return fail('생년월일 8자리를 입력해 주세요. 예) 19810129');
+  const date = updateDateHint();
+  if (!date) return fail($('#dateHint').textContent || '생년월일 8자리를 입력해 주세요. 예) 19810129');
+
+  let time = null;
+  const exact = parseTime(form.birthTime.value);
+  if (exact) time = `${pad2(exact.h)}:${pad2(exact.m)}`;
+  else if (form.birthTime.value.trim()) return fail('시각은 4자리로 입력해 주세요. 예) 1430');
+  else if (sijin === null) return fail('태어난 시간을 골라 주세요. 모르면 “시간 모름”을 누르세요.');
+  else if (sijin >= 0) time = `${pad2((sijin * 2) % 24)}:${form.correction.checked ? '30' : '00'}`;
 
   const profile = {
     id: Date.now().toString(36),
@@ -48,13 +155,16 @@ form.addEventListener('submit', (e) => {
     gender: form.gender.value,
     calendar: form.calendar.value,
     leap: form.leap.checked,
-    date: { y, m, d },
-    time: form.timeUnknown.checked ? null : form.birthTime.value || '12:00',
+    date,
+    time,
+    sijin: !exact && sijin >= 0 ? sijin : null,
     correction: form.correction.checked,
   };
   const ok = openProfile(profile);
   if (!ok) fail('해당 음력 날짜를 찾을 수 없어요. 윤달 여부를 확인해 주세요.');
 });
+
+renderSijin();
 
 function fail(msg) {
   $('#formError').textContent = msg;
@@ -94,7 +204,9 @@ function renderResult() {
   const dm = saju.dayMaster;
   const dateStr = `양력 ${solar.year}.${solar.month}.${solar.day}`;
   const lunarStr = lunar ? ` · 음력 ${lunar.year}.${lunar.leap ? '윤' : ''}${lunar.month}.${lunar.day}` : '';
-  const timeStr = profile.time
+  const timeStr = profile.sijin != null
+    ? `${BRANCHES_KO[profile.sijin]}시 출생${saju.dst ? ' · 서머타임 반영' : ''}`
+    : profile.time
     ? `${profile.time} 출생${saju.localTime ? ` (보정 ${saju.localTime})` : ''}${saju.dst ? ' · 서머타임 반영' : ''}`
     : '시간 모름';
   $('#profileCard').innerHTML = `
@@ -391,7 +503,7 @@ async function renderSaved() {
     <li>
       <button class="open" data-id="${p.id}">
         ${esc(p.name || '이름 없음')} (${p.gender === 'male' ? '남' : '여'})
-        <small>${p.calendar === 'lunar' ? '음력' : '양력'} ${p.date.y}.${p.date.m}.${p.date.d}${p.leap ? '(윤)' : ''} ${p.time || '시간 모름'}</small>
+        <small>${p.calendar === 'lunar' ? '음력' : '양력'} ${p.date.y}.${p.date.m}.${p.date.d}${p.leap ? '(윤)' : ''} ${p.sijin != null ? BRANCHES_KO[p.sijin] + '시' : p.time || '시간 모름'}</small>
       </button>
       <button class="del" data-id="${p.id}" aria-label="삭제">×</button>
     </li>`).join('');
