@@ -5,6 +5,7 @@ import {
 } from './saju.js';
 import { tojungOf } from './tojung.js';
 import { DREAM_CATEGORIES, DREAM_COUNT, searchDreams } from './dreams.js';
+import { SYMBOLS, GEN_COUNT, kindLabel, actionsFor, modifiersFor, interpret, searchGenerated } from './dream-gen.js';
 import { hanjaFor, analyzeName, suggestNames, soundElement, ELEMENT_NAMES } from './naming.js';
 import { APP_CONFIG, COUPANG_NOTICE } from './config.js';
 import { ZODIAC_LIFE } from './zodiac-life.js';
@@ -727,21 +728,72 @@ function esc(s) {
 let dreamCat = '';
 const LUCK_LABEL = ['흉몽', '보통', '길몽'];
 
+// 사전 분류 → 조합 풀이 종류
+const GEN_KINDS_OF = { 동물: ['동물'], 사람: ['사람'], 신체: ['신체'], 자연: ['자연'], '물건·장소': ['물건', '장소'], 음식: ['음식'] };
+const DREAM_TOTAL = DREAM_COUNT + GEN_COUNT;
+
+function situationsHtml(list) {
+  return `<ul class="situations">${list.map((s) => `<li class="${s.hit ? 'hit' : ''}">
+    <b>${esc(s.title)}</b><span class="luck luck-${s.luck}">${LUCK_LABEL[s.luck]}</span>
+    <p>${esc(s.text)}</p></li>`).join('')}</ul>`;
+}
+
+// 조합 풀이 한 상징: 모양 고르기 + 모든 상황
+function genBody(sym, modIdx, hits = new Set()) {
+  const mods = modifiersFor(sym);
+  const mod = mods[modIdx] || mods[0];
+  const list = actionsFor(sym).map((a) => ({ ...interpret(sym, a, mod) }))
+    .map((r) => ({ ...r, hit: hits.has(r.title) }))
+    .sort((a, b) => b.hit - a.hit);
+  const chips = mods.length > 1
+    ? `<div class="chips mods">${mods.map((m, i) => `<button type="button" data-mod="${i}" class="${i === modIdx ? 'active' : ''}">${m.w ? esc(m.w) + ' ' + esc(sym.name) : '기본'}</button>`).join('')}</div>`
+    : '';
+  return chips + situationsHtml(list);
+}
+
+function genItem(sym, { open = false, modIdx = 0, hits } = {}) {
+  const i = SYMBOLS.indexOf(sym);
+  const n = actionsFor(sym).length, m = modifiersFor(sym).length;
+  return `<details class="dream-item gen" data-sym="${i}" data-mod="${modIdx}"${open ? ' open' : ''}>
+    <summary><b>${esc(sym.name)} 꿈</b> <span class="muted">상황 ${n}가지${m > 1 ? ` × 모양 ${m}가지` : ''} · ${kindLabel(sym.kind)}</span></summary>
+    <div class="gen-body">${open ? genBody(sym, modIdx, hits) : ''}</div>
+  </details>`;
+}
+
+function curatedItem(d, open) {
+  return `<details class="dream-item"${open ? ' open' : ''}>
+    <summary><b>${esc(d.title)} 꿈</b> <span class="muted">${d.situations.length}가지${d.keys.length > 1 ? ' · ' + esc(d.keys.slice(1).join(', ')) : ''}</span></summary>
+    ${situationsHtml(d.situations)}
+  </details>`;
+}
+
 function renderDreams() {
-  $('#dreamCats').innerHTML = ['', ...DREAM_CATEGORIES].map((c) =>
+  $('#dreamCats').innerHTML = ['', ...DREAM_CATEGORIES, '음식'].map((c) =>
     `<button type="button" data-cat="${c}" class="${c === dreamCat ? 'active' : ''}">${c || '전체'}</button>`).join('');
   const q = $('#dreamQuery').value.trim();
-  const list = searchDreams(q, dreamCat);
-  const open = q && list.length <= 3;
-  $('#dreamResults').innerHTML = list.length
-    ? list.map((d, i) => `<details class="dream-item"${open || (q && i === 0) ? ' open' : ''}>
-        <summary><b>${esc(d.title)} 꿈</b> <span class="muted">${d.situations.length}가지${d.keys.length > 1 ? ' · ' + esc(d.keys.slice(1).join(', ')) : ''}</span></summary>
-        <ul class="situations">${d.situations.map((s) => `<li class="${s.hit ? 'hit' : ''}">
-          <b>${esc(s.title)}</b><span class="luck luck-${s.luck}">${LUCK_LABEL[s.luck]}</span>
-          <p>${esc(s.text)}</p></li>`).join('')}</ul>
-      </details>`).join('')
-    : `<p class="empty-msg">'${esc(q)}' 꿈은 아직 사전에 없어요. 다른 낱말로 찾아보세요.</p>`;
-  $('#statusText').textContent = q ? `꿈해몽 · ${list.length}건` : `꿈해몽 · ${DREAM_COUNT}가지 풀이`;
+  let html = '';
+  let count = 0;
+  if (q) {
+    const list = searchDreams(q);
+    const gen = searchGenerated(q);
+    // 조합 풀이에서 딱 맞는 상황이 나왔으면 그것부터
+    const genHit = gen.length && gen[0].results.some((r) => r.hit);
+    const genHtml = gen.map((g) => genItem(g.sym, {
+      open: true, modIdx: modifiersFor(g.sym).indexOf(g.mod),
+      hits: new Set(g.results.filter((r) => r.hit).map((r) => r.title)),
+    })).join('');
+    const curHtml = list.map((d, i) => curatedItem(d, list.length <= 3 || i === 0)).join('');
+    html = genHit ? genHtml + curHtml : curHtml + genHtml;
+    count = list.length + gen.length;
+  } else {
+    const kinds = dreamCat ? GEN_KINDS_OF[dreamCat] || [] : null;
+    const list = dreamCat === '음식' ? [] : searchDreams('', dreamCat);
+    const gen = SYMBOLS.filter((s) => !kinds || kinds.includes(kindLabel(s.kind)));
+    html = list.map((d) => curatedItem(d, false)).join('') + gen.map((s) => genItem(s)).join('');
+    count = list.length + gen.length;
+  }
+  $('#dreamResults').innerHTML = html || `<p class="empty-msg">'${esc(q)}' 꿈은 아직 사전에 없어요. 다른 낱말로 찾아보세요.</p>`;
+  $('#statusText').textContent = q ? `꿈해몽 · ${count}건` : `꿈해몽 · 모두 ${DREAM_TOTAL.toLocaleString()}가지 풀이`;
 }
 
 $('#dreamForm').addEventListener('submit', (e) => { e.preventDefault(); dreamCat = ''; renderDreams(); });
@@ -752,6 +804,20 @@ $('#dreamCats').addEventListener('click', (e) => {
   dreamCat = b.dataset.cat;
   $('#dreamQuery').value = '';
   renderDreams();
+});
+// 조합 풀이는 펼칠 때 그린다 (1만 가지를 한꺼번에 그리지 않도록)
+$('#dreamResults').addEventListener('toggle', (e) => {
+  const d = e.target;
+  if (!d.classList || !d.classList.contains('gen') || !d.open) return;
+  const body = d.querySelector('.gen-body');
+  if (!body.innerHTML) body.innerHTML = genBody(SYMBOLS[+d.dataset.sym], +d.dataset.mod);
+}, true);
+$('#dreamResults').addEventListener('click', (e) => {
+  const b = e.target.closest('.mods button');
+  if (!b) return;
+  const d = b.closest('details.gen');
+  d.dataset.mod = b.dataset.mod;
+  d.querySelector('.gen-body').innerHTML = genBody(SYMBOLS[+d.dataset.sym], +b.dataset.mod);
 });
 
 // ---------- 작명소 ----------

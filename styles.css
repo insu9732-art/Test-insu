@@ -398,6 +398,8 @@ main > section > .note { color: #e8eefc; }
   border: 2px solid; border-color: var(--hi) var(--dk) var(--dk) var(--hi);
 }
 .chips button.active { border-color: var(--dk) var(--hi) var(--hi) var(--dk); background: var(--accent); color: #fff; }
+.chips.mods { margin: 4px 10px 8px; }
+.chips.mods button { font-size: 13px; padding: 4px 8px; }
 .listbox {
   background: var(--paper);
   border: 2px solid; border-color: var(--sh) var(--hi) var(--hi) var(--sh);

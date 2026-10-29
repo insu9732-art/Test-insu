@@ -120,6 +120,23 @@ test('안드로이드용 한 파일 묶음이 문법 오류 없이 만들어진�
   assert.doesNotThrow(() => new Function(script));
 });
 
+test('꿈해몽 조합 풀이 1만 가지 이상', async () => {
+  const G = await import('../js/dream-gen.js');
+  assert.ok(G.GEN_COUNT >= 10000, `GEN_COUNT=${G.GEN_COUNT}`);
+  const [g] = G.searchGenerated('검은 돼지가 집 밖으로 도망가는 꿈');
+  assert.equal(g.sym.name, '돼지');
+  assert.equal(g.mod.w, '검은');
+  assert.equal(g.results[0].title, '검은 돼지가 집 밖으로 도망가는 꿈');
+  assert.ok(g.results[0].hit);
+  assert.equal(G.searchGenerated('황금 뱀에게 물리는 꿈')[0].results[0].title, '황금 뱀에게 물리는 꿈');
+  assert.equal(G.searchGenerated('엄마가 죽는 꿈')[0].results[0].luck, 2);
+  // 모든 조합이 빈칸 없이 만들어지는지
+  for (const s of G.SYMBOLS) for (const a of G.actionsFor(s)) for (const m of G.modifiersFor(s)) {
+    const r = G.interpret(s, a, m);
+    assert.ok(!/\{|undefined|  /.test(r.title + r.text), r.title);
+  }
+});
+
 test('꿈해몽 검색과 작명 추천', async () => {
   const { searchDreams } = await import('../js/dreams.js');
   const { suggestNames, analyzeName, HANJA } = await import('../js/naming.js');
