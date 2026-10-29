@@ -277,3 +277,4 @@ button:active { transform: scale(0.98); }
 .exact { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
 .exact span { flex: 0 0 auto; font-size: 14px; color: var(--muted); }
 .exact input { flex: 1; min-width: 0; }
+.segmented.cal { margin-bottom: 8px; }

@@ -44,21 +44,15 @@
         </div>
 
         <div class="field">
-          <span>생년월일은 양력인가요, 음력인가요?</span>
-          <div class="segmented" role="radiogroup">
+          <span>생년월일</span>
+          <div class="segmented cal" role="radiogroup" aria-label="양력/음력">
             <label><input type="radio" name="calendar" value="solar" /><span>양력</span></label>
             <label><input type="radio" name="calendar" value="lunar" /><span>음력</span></label>
+            <label><input type="radio" name="calendar" value="lunar-leap" /><span>음력 윤달</span></label>
           </div>
-        </div>
-
-        <label class="field">
-          <span>생년월일 (숫자 8자리)</span>
-          <input type="text" id="birthDate" name="birthDate" inputmode="numeric" autocomplete="bday" maxlength="10" placeholder="예) 19810129" />
+          <input type="text" id="birthDate" name="birthDate" inputmode="numeric" autocomplete="bday" maxlength="10" placeholder="숫자 8자리  예) 19810129" />
           <small class="hint" id="dateHint"></small>
-        </label>
-        <label class="check" id="leapRow" hidden>
-          <input type="checkbox" id="leap" name="leap" /> 윤달
-        </label>
+        </div>
 
         <div class="field">
           <span>태어난 시간</span>

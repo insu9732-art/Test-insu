@@ -26,8 +26,17 @@ $('#backBtn').addEventListener('click', () => show(current && !views.result.hidd
 $('#savedBtn').addEventListener('click', async () => { show('saved'); await renderSaved(); });
 $('#newBtn').addEventListener('click', () => show('input'));
 
+// 안드로이드 뒤로 가기 버튼: 앱 안에서 이전 화면으로, 첫 화면이면 false (앱 종료)
+window.handleAndroidBack = () => {
+  if (!views.input.hidden) return false;
+  $('#backBtn').click();
+  return true;
+};
+
 // ---------- 입력 폼 ----------
 
+const isLunar = () => form.calendar.value.startsWith('lunar');
+const isLeap = () => form.calendar.value === 'lunar-leap';
 const pad2 = (n) => String(n).padStart(2, '0');
 let sijin = null; // null: 미선택, -1: 모름, 0~11: 子~亥시
 
@@ -92,18 +101,18 @@ function updateDateHint() {
     return null;
   }
   if (!form.calendar.value) {
-    hint.textContent = '위에서 양력/음력을 먼저 골라 주세요';
+    hint.textContent = '양력/음력 중 하나를 눌러 주세요';
     hint.classList.add('bad');
     return null;
   }
-  if (form.calendar.value === 'lunar') {
-    const solar = date.m >= 1 && date.m <= 12 ? lunarToSolar(date.y, date.m, date.d, form.leap.checked) : null;
+  if (isLunar()) {
+    const solar = date.m >= 1 && date.m <= 12 ? lunarToSolar(date.y, date.m, date.d, isLeap()) : null;
     if (!solar) {
-      hint.textContent = `음력 ${date.y}년 ${form.leap.checked ? '윤' : ''}${date.m}월 ${date.d}일은 없는 날짜예요`;
+      hint.textContent = `음력 ${date.y}년 ${isLeap() ? '윤' : ''}${date.m}월 ${date.d}일은 없는 날짜예요`;
       hint.classList.add('bad');
       return null;
     }
-    hint.textContent = `음력 ${date.y}년 ${form.leap.checked ? '윤' : ''}${date.m}월 ${date.d}일 → 양력 ${solar.year}년 ${solar.month}월 ${solar.day}일`;
+    hint.textContent = `음력 ${date.y}년 ${isLeap() ? '윤' : ''}${date.m}월 ${date.d}일 → 양력 ${solar.year}년 ${solar.month}월 ${solar.day}일`;
   } else {
     if (!isValidSolar(date)) {
       hint.textContent = `${date.y}년 ${date.m}월 ${date.d}일은 없는 날짜예요`;
@@ -117,12 +126,7 @@ function updateDateHint() {
 }
 
 form.birthDate.addEventListener('input', updateDateHint);
-form.leap.addEventListener('change', updateDateHint);
-form.calendar.forEach((r) => r.addEventListener('change', () => {
-  $('#leapRow').hidden = form.calendar.value !== 'lunar';
-  if (form.calendar.value !== 'lunar') form.leap.checked = false;
-  updateDateHint();
-}));
+form.calendar.forEach((r) => r.addEventListener('change', updateDateHint));
 form.correction.addEventListener('change', () => { syncExactTime(); renderSijin(); });
 
 // 정확한 시각을 입력하면 해당 시진을 표시
@@ -158,8 +162,8 @@ form.addEventListener('submit', (e) => {
     id: Date.now().toString(36),
     name: form.name.value.trim(),
     gender: form.gender.value,
-    calendar: form.calendar.value,
-    leap: form.leap.checked,
+    calendar: isLunar() ? 'lunar' : 'solar',
+    leap: isLeap(),
     date,
     time,
     sijin: !exact && sijin >= 0 ? sijin : null,
@@ -497,6 +501,7 @@ $('#shareBtn').addEventListener('click', async () => {
   const text = `${profile.name || '나'}의 사주팔자\n`
     + `시 ${p.hour ? pillarName(p.hour) : '??'} · 일 ${pillarName(p.day)} · 월 ${pillarName(p.month)} · 연 ${pillarName(p.year)}\n`
     + `${DAY_MASTER[saju.dayMaster].title} · ${saju.zodiac}띠 · ${saju.strength.label}`;
+  if (window.AndroidBridge) { window.AndroidBridge.share(text); return; } // 안드로이드 앱
   if (navigator.share) {
     try { await navigator.share({ title: '사주풀이', text, url: location.href }); return; } catch (e) {
       if (e && e.name === 'AbortError') return; // 사용자가 취소

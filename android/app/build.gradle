@@ -1,0 +1,36 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.saju.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.saju.app'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // 개인 설치용: 디버그 키로 서명해 바로 설치할 수 있게 한다
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// 웹앱(index.html, js, css)을 HTML 하나로 묶어 assets 에 넣는다
+tasks.register('bundleWebApp', Exec) {
+    workingDir rootProject.projectDir.parentFile
+    commandLine 'python3', 'tools/bundle.py', 'android', "${projectDir}/src/main/assets/index.html"
+}
+tasks.named('preBuild') { dependsOn 'bundleWebApp' }

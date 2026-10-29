@@ -25,6 +25,17 @@ npm test         # 계산 엔진 테스트
 - iPhone(Safari): 공유 → **홈 화면에 추가**
 - Android(Chrome): 메뉴 → **앱 설치 / 홈 화면에 추가**
 
+## 안드로이드 앱 (APK)
+
+`android/` 폴더는 이 웹앱을 그대로 담은 안드로이드 앱입니다.
+
+- GitHub에 올리면 **GitHub Actions**(`.github/workflows/android.yml`)가 APK를 자동으로 만들어
+  저장소의 **Releases → `apk-latest`** 에 `saju.apk` 로 올립니다.
+- 휴대폰에서 그 페이지를 열어 `saju.apk` 를 내려받아 설치합니다.
+  처음 설치할 때 "출처를 알 수 없는 앱 설치"를 허용해야 합니다.
+- 직접 빌드: Android SDK가 있는 PC에서 `cd android && gradle assembleRelease`
+  (웹앱 파일은 빌드할 때 `tools/bundle.py` 가 자동으로 묶어 넣습니다.)
+
 ## 계산 방식
 
 | 항목 | 기준 |
@@ -49,5 +60,7 @@ js/saju.js             사주 계산 엔진
 js/content.js          해석 문구
 js/app.js              화면 동작
 sw.js, manifest.webmanifest, icons/   PWA
+android/               안드로이드 앱 (WebView)
+tools/bundle.py        웹앱을 HTML 하나로 묶기
 test/saju.test.mjs     테스트
 ```
