@@ -1138,7 +1138,10 @@ function openAd(e) {
     e.preventDefault();
     window.AndroidBridge.openUrl(url);
   }
+  const wasLocked = !isUnlocked();
   unlock();
+  renderAd();
+  if (wasLocked && Number(settings().unlockHours)) toast(`이용이 열렸어요! ${settings().unlockHours}시간 동안 모든 풀이를 볼 수 있어요`);
   if (!$('#gate').hidden) {
     $('#gate').hidden = true;
     const action = pendingAction;
@@ -1156,6 +1159,18 @@ function renderAd() {
   $('#gateAdText').textContent = cfg.bannerText || '오늘의 특가 보러 가기';
   $('#adNotice').textContent = COUPANG_NOTICE;
   $('#gateNotice').textContent = COUPANG_NOTICE;
+  // 배너를 눌러야 이용할 수 있다는 안내, 누른 뒤에는 남은 시간
+  const hours = Number(cfg.unlockHours) || 0;
+  let until = 0;
+  try { until = Number(localStorage.getItem(UNLOCK_KEY) || 0); } catch { /* 없음 */ }
+  const left = Math.ceil((until - Date.now()) / 3600000);
+  const open = hours && left > 0;
+  $('#adGo').textContent = !hours ? '바로가기 ▶' : open ? '이용 중 ✔' : '누르고 이용 ▶';
+  $('#adHint').hidden = !hours;
+  $('#adHint').className = 'ad-hint' + (open ? ' ok' : '');
+  $('#adHint').textContent = open
+    ? `✔ 사주풀이·꿈해몽·작명 이용 중 (남은 시간 약 ${left}시간)`
+    : `▲ 배너를 누르면 사주풀이·꿈해몽·작명을 ${hours}시간 동안 이용할 수 있어요`;
 }
 
 $('#adBanner').addEventListener('click', openAd);
@@ -1186,6 +1201,7 @@ $('#setTest').addEventListener('click', () => {
 });
 
 renderAd();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) renderAd(); });
 
 // ---------- PWA ----------
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
