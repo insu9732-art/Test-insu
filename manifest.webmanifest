@@ -1,0 +1,17 @@
+{
+  "name": "사주풀이",
+  "short_name": "사주풀이",
+  "description": "생년월일시로 보는 나의 사주팔자, 오행, 대운, 오늘의 운세",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1c1430",
+  "theme_color": "#1c1430",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

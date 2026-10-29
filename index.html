@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1c1430" />
+  <meta name="description" content="생년월일시로 보는 나의 사주팔자, 오행, 대운, 오늘의 운세" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="사주풀이" />
+  <title>사주풀이</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="appbar">
+    <button class="icon-btn" id="backBtn" aria-label="뒤로">‹</button>
+    <h1>사주풀이</h1>
+    <button class="icon-btn" id="savedBtn" aria-label="저장된 사주">☰</button>
+  </header>
+
+  <main>
+    <!-- 입력 화면 -->
+    <section id="inputView" class="view">
+      <div class="hero">
+        <img class="hero-symbol" src="icons/icon.svg" alt="" width="72" height="72" />
+        <p>태어난 날과 시간으로<br />나의 사주팔자를 풀어봅니다</p>
+      </div>
+
+      <form id="sajuForm" class="card" novalidate>
+        <label class="field">
+          <span>이름 (선택)</span>
+          <input type="text" name="name" maxlength="20" placeholder="홍길동" autocomplete="off" />
+        </label>
+
+        <div class="field">
+          <span>성별</span>
+          <div class="segmented" role="radiogroup">
+            <label><input type="radio" name="gender" value="male" checked /><span>남자</span></label>
+            <label><input type="radio" name="gender" value="female" /><span>여자</span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <span>달력</span>
+          <div class="segmented" role="radiogroup">
+            <label><input type="radio" name="calendar" value="solar" checked /><span>양력</span></label>
+            <label><input type="radio" name="calendar" value="lunar" /><span>음력</span></label>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>생년월일</span>
+          <input type="date" name="birthDate" min="1900-01-01" max="2100-12-31" value="1990-01-01" required />
+        </label>
+        <label class="check" id="leapRow" hidden>
+          <input type="checkbox" name="leap" /> 윤달
+        </label>
+
+        <label class="field">
+          <span>태어난 시간</span>
+          <input type="time" name="birthTime" value="12:00" />
+        </label>
+        <label class="check">
+          <input type="checkbox" name="timeUnknown" /> 시간을 몰라요
+        </label>
+        <label class="check">
+          <input type="checkbox" name="correction" checked /> 서울 기준 시차 보정 (−30분)
+        </label>
+
+        <p class="error" id="formError" role="alert"></p>
+        <button type="submit" class="primary">사주 보기</button>
+      </form>
+      <p class="note">재미와 참고용입니다. 중요한 결정은 스스로의 판단으로 하세요.</p>
+    </section>
+
+    <!-- 결과 화면 -->
+    <section id="resultView" class="view" hidden>
+      <div class="card profile" id="profileCard"></div>
+
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="chart" class="active">원국</button>
+        <button role="tab" data-tab="elements">오행</button>
+        <button role="tab" data-tab="personality">성격</button>
+        <button role="tab" data-tab="daewoon">대운</button>
+        <button role="tab" data-tab="fortune">운세</button>
+      </nav>
+
+      <div id="tabContent"></div>
+
+      <div class="actions">
+        <button class="secondary" id="saveBtn">저장</button>
+        <button class="secondary" id="shareBtn">공유</button>
+        <button class="secondary" id="newBtn">새로 보기</button>
+      </div>
+    </section>
+
+    <!-- 저장 목록 -->
+    <section id="savedView" class="view" hidden>
+      <h2 class="section-title">저장된 사주</h2>
+      <ul id="savedList" class="saved-list"></ul>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
