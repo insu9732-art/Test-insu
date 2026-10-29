@@ -122,7 +122,11 @@ test('안드로이드용 한 파일 묶음이 문법 오류 없이 만들어진�
 
 test('꿈해몽 조합 풀이 1만 가지 이상', async () => {
   const G = await import('../js/dream-gen.js');
-  assert.ok(G.GEN_COUNT >= 10000, `GEN_COUNT=${G.GEN_COUNT}`);
+  assert.ok(G.GEN_COUNT >= 193000, `GEN_COUNT=${G.GEN_COUNT}`); // 처음 1만9천여 가지의 10배 이상
+  assert.equal(G.searchGenerated('돼지 두 마리가 집에 들어오는 꿈')[0].results[0].title, '돼지 두 마리가 집에 들어오는 꿈');
+  assert.equal(G.searchGenerated('돌아가신 할머니가 웃는 꿈')[0].results[0].title, '돌아가신 할머니가 환하게 웃는 꿈');
+  assert.equal(G.searchGenerated('죽은 돼지 꿈')[0].sym.name, '돼지');
+  assert.equal(G.searchGenerated('이가 빠지는 꿈')[0].sym.name, '이빨');
   const [g] = G.searchGenerated('검은 돼지가 집 밖으로 도망가는 꿈');
   assert.equal(g.sym.name, '돼지');
   assert.equal(g.mod.w, '검은');

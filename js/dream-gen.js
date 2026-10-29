@@ -1,3 +1,5 @@
+import { MORE_ACT, MORE_MOD, MORE_SYM, PERSON_TAGS } from './dream-gen-more.js';
+
 // 꿈해몽 조합 풀이: [꿈에 나온 것] × [상황] × [모양]으로 풀이를 만든다
 // 전통적으로 각 상징이 뜻하는 바(재물·귀인·근심 …)와 상황이 그 기운을 얻는지 잃는지로 길흉을 정한다.
 
@@ -62,8 +64,8 @@ const ACT = {
     { t: '{S:을를} 잡았다 놓치는 꿈', k: '놓치,놓쳤,빠져', type: 'go' },
     { t: '{S:을를} 죽이는 꿈', k: '죽이,죽였,때려', type: 'win' },
     { t: '{S:이가} 죽어 있는 꿈', k: '죽는,죽은,죽어,죽었,시체', type: 'mixed' },
-    { t: '{S:이가} 새끼를 낳는 꿈', k: '새끼,낳,출산,알을', type: 'rise' },
-    { t: '{S:이가} 떼로 몰려오는 꿈', k: '떼,몰려,많이,여러,수십,우글', type: 'rise' },
+    { t: '{S:이가} 새끼를 낳는 꿈', k: '새끼,낳,출산', type: 'rise', noMod: ['새끼'] },
+    { t: '{S:이가} 떼로 몰려오는 꿈', k: '떼,몰려,많이,여러,수십,우글', type: 'rise', noMod: ['두 마리', '새끼'] },
     { t: '{S:이가} 서로 싸우는 꿈', k: '서로싸,싸우는,다투', type: 'sign', note: '주변에서 다툼이나 경쟁이 벌어지는 모습입니다. 한발 물러서 지켜보면 이득을 봅니다.' },
     { t: '{S:과와} 싸워 이기는 꿈', k: '이기,이겼,싸워', type: 'win' },
     { t: '{S:이가} 사람처럼 말을 하는 꿈', k: '말을,말하,말했', type: 'sign', note: '꿈속의 말은 실제로 들을 소식이나 조언을 뜻합니다. 들은 말을 잘 기억해 두세요.' },
@@ -113,7 +115,7 @@ const ACT = {
     { t: '{S:이가} 예뻐지는 꿈', k: '예뻐,예쁜,고와', type: 'rise' },
     { t: '{S:에} 상처가 낫는 꿈', k: '낫,나았,아물', type: 'win' },
     { t: '{S:이가} 썩거나 상하는 꿈', k: '썩,상하,곪', type: 'fall' },
-    { t: '남의 {S:을를} 보는 꿈', k: '남의,다른사람', type: 'sign', note: '남의 몸을 보는 꿈은 그 사람과 관련된 일을 알게 된다는 뜻입니다.' },
+    { t: '남의 {S:을를} 보는 꿈', k: '남의,다른사람', type: 'sign', noMod: true, note: '남의 몸을 보는 꿈은 그 사람과 관련된 일을 알게 된다는 뜻입니다.' },
     { t: '{S:이가} 여러 개로 늘어나는 꿈', k: '늘어,여러,많아', type: 'rise' },
   ],
   thing: [
@@ -164,7 +166,7 @@ const ACT = {
     { t: '{S:을를} 배불리 먹는 꿈', k: '배불,많이먹,실컷', type: 'rise' },
     { t: '{S:을를} 받는 꿈', k: '받는,받았,선물', type: 'come' },
     { t: '{S:을를} 만드는 꿈', k: '만드,요리,굽', type: 'win' },
-    { t: '상한 {S:을를} 먹는 꿈', k: '상한,썩은,상해', type: 'fall' },
+    { t: '상한 {S:을를} 먹는 꿈', k: '상한,썩은,상해', type: 'fall', noMod: true },
     { t: '{S:을를} 나누어 주는 꿈', k: '나누,나눠,주는', type: 'go', note: '나누는 꿈은 베푼 만큼 돌아오는 뜻도 있습니다.' },
     { t: '{S:을를} 사는 꿈', k: '사는,샀', type: 'come' },
     { t: '{S:을를} 쏟거나 버리는 꿈', k: '쏟,버리,흘리', type: 'go' },
@@ -200,7 +202,7 @@ const MOD = {
   ],
   body: [
     { w: '', k: '' },
-    { w: '가족의', k: '가족,엄마,아빠,아이,남편,아내', d: 0, pos: '가족의 몸이니 그 사람에게 생길 일로 보세요.', neg: '가족의 몸이니 그 사람의 건강을 살펴 주세요.' },
+    { w: '가족의', k: '가족,엄마,아빠,남편,아내', d: 0, pos: '가족의 몸이니 그 사람에게 생길 일로 보세요.', neg: '가족의 몸이니 그 사람의 건강을 살펴 주세요.' },
   ],
 };
 
@@ -241,7 +243,7 @@ const SYM_RAW = [
   ['죽은 사람', 'person', '재물'], ['외국인', 'person', '기회'], ['신선,산신령', 'person', '귀인'], ['부처님,예수님', 'person', '귀인'], ['쌍둥이', 'person', '자녀'],
   ['시어머니,시아버지', 'person', '가정'], ['장모,장인', 'person', '가정'], ['사촌,친척', 'person', '협력'], ['이웃', 'person', '협력'], ['손님', 'person', '소식'],
   // 신체
-  ['이빨,치아', 'body', '가정'], ['머리카락', 'body', '건강'], ['얼굴', 'body', '명예'], ['눈', 'body', '지혜'], ['코', 'body', '재물'],
+  ['이빨,치아,이', 'body', '가정'], ['머리카락', 'body', '건강'], ['얼굴', 'body', '명예'], ['눈', 'body', '지혜'], ['코', 'body', '재물'],
   ['입', 'body', '소식'], ['귀', 'body', '소식'], ['손', 'body', '일'], ['손가락', 'body', '가정'], ['손톱', 'body', '건강'],
   ['발', 'body', '기회'], ['다리', 'body', '일'], ['배', 'body', '재물'], ['가슴', 'body', '인연'], ['등', 'body', '귀인'],
   ['피부', 'body', '건강'], ['수염', 'body', '권세'], ['혀', 'body', '구설'], ['뼈', 'body', '가정'], ['심장', 'body', '건강'],
@@ -281,6 +283,14 @@ const SYM_RAW = [
   ['인삼,산삼', 'food', '건강'], ['꿀', 'food', '재물'], ['잔칫상', 'food', '명예'], ['커피,차', 'food', '소식'], ['아이스크림', 'food', '유혹'],
 ];
 
+for (const [k, list] of Object.entries(MORE_ACT)) ACT[k].push(...list);
+for (const [k, list] of Object.entries(MORE_MOD)) MOD[k] = MOD[k] ? [...MOD[k], ...list] : list;
+SYM_RAW.push(...MORE_SYM);
+for (const row of SYM_RAW) {
+  const first = row[0].split(',')[0];
+  if (row[1] === 'person' && PERSON_TAGS[first]) row[3] = PERSON_TAGS[first];
+}
+
 export const SYMBOLS = SYM_RAW.map(([names, kind, meaning, tags = '']) => {
   const keys = names.split(',');
   const name = keys[0].replace(/\(.*\)/, '');
@@ -291,14 +301,27 @@ const KIND_LABEL = { animal: '동물', person: '사람', body: '신체', thing: 
 export const GEN_CATEGORIES = Object.values(KIND_LABEL);
 export const kindLabel = (k) => KIND_LABEL[k];
 
-export function actionsFor(sym) {
-  return ACT[sym.kind].filter((a) => !a.tag || a.tag === 'bite' || sym.tags.includes(a.tag));
+function tagOk(a, sym) {
+  if (!a.tag || a.tag === 'bite') return true;
+  if (a.tag === 'land') return !sym.tags.includes('water');
+  return sym.tags.includes(a.tag);
+}
+// 모양과 어울리지 않는 상황은 뺀다 (새끼 돼지가 새끼를 낳는 꿈 등)
+const modOk = (a, mod) => !mod || !mod.w || !a.noMod || (a.noMod !== true && !a.noMod.includes(mod.w));
+
+export function actionsFor(sym, mod) {
+  return ACT[sym.kind].filter((a) => tagOk(a, sym) && modOk(a, mod));
 }
 export function modifiersFor(sym) {
-  return MOD[sym.kind] || [{ w: '', k: '' }];
+  return (MOD[sym.kind] || [{ w: '', k: '' }])
+    .filter((m) => (!m.notTag || !sym.tags.includes(m.notTag)) && (!m.onlyTag || sym.tags.includes(m.onlyTag)));
+}
+/** 상징 하나로 만들 수 있는 풀이 수 */
+export function comboCount(sym) {
+  return modifiersFor(sym).reduce((n, m) => n + actionsFor(sym, m).length, 0);
 }
 
-export const GEN_COUNT = SYMBOLS.reduce((a, s) => a + actionsFor(s).length * modifiersFor(s).length, 0);
+export const GEN_COUNT = SYMBOLS.reduce((a, s) => a + comboCount(s), 0);
 
 // ---------- 풀이 만들기 ----------
 
@@ -342,7 +365,7 @@ function effectLine(type, m, subj, person) {
 /** 상징·상황·모양 하나의 풀이 */
 export function interpret(sym, act, mod = { w: '' }) {
   const m = MEANING[sym.meaning];
-  const subj = mod.w ? (mod.w === '새끼' ? `새끼 ${sym.name}` : `${mod.w} ${sym.name}`) : sym.name;
+  const subj = !mod.w ? sym.name : mod.after ? `${sym.name} ${mod.w}` : `${mod.w} ${sym.name}`;
   const title = fill(act.t, subj).replace('  ', ' ');
   let luck = act.type === 'mixed' && sym.kind === 'person' ? 2 : luckOf(act.type, m.pol);
   if (mod.d && luck !== 1) luck = Math.max(0, Math.min(2, luck + (luck === 2 && mod.d < 0 ? -1 : luck === 0 && mod.d > 0 ? 1 : 0)));
@@ -370,6 +393,8 @@ function stripMod(token) {
   return token;
 }
 
+const ONE_JOSA = new Set(['', '이', '가', '을', '를', '은', '는', '에', '에서', '에게', '의', '와', '과', '도', '만', '랑', '이랑', '으로', '로', '한테', '꿈']);
+
 // 낱말 앞머리가 상징 이름과 맞는 것 (뱀에게 → 뱀, 에게의 '게'는 맞추지 않는다)
 function findSymbols(query) {
   const tokens = (query || '').split(/\s+/).filter(Boolean).map(stripMod);
@@ -377,7 +402,7 @@ function findSymbols(query) {
   for (const t of tokens) {
     let best = null;
     for (const sym of SYMBOLS) for (const k of sym.keys) {
-      if (t.startsWith(k) && (!best || k.length > best.key.length)) best = { sym, key: k };
+      if (t.startsWith(k) && (k.length > 1 || ONE_JOSA.has(t.slice(1))) && (!best || k.length > best.key.length)) best = { sym, key: k };
     }
     if (best) for (const sym of SYMBOLS) if (sym.keys.includes(best.key)) out.push({ sym, key: best.key });
   }
@@ -404,10 +429,12 @@ export function searchGenerated(query, limit = 6) {
   const found = [];
   for (const f of findSymbols(query)) if (!found.some((x) => x.sym === f.sym)) found.push(f);
   const groups = found.slice(0, 4).map(({ sym, key }) => {
-    const rest = q.replace(key, '');
     const mods = modifiersFor(sym);
-    const mod = mods.find((md) => md.w && md.k.split(',').some((w) => q.includes(w))) || mods[0];
-    const scored = actionsFor(sym).map((a) => {
+    let modWord = '';
+    const mod = mods.find((md) => md.w && md.k.split(',').some((w) => q.includes(w) && (modWord = w))) || mods[0];
+    // 상황은 상징·모양 낱말을 뺀 나머지로 찾는다 (돌아가신 할머니 → '돌아가'를 죽음으로 보지 않게)
+    const rest = q.replace(key, '').replace(modWord, '');
+    const scored = actionsFor(sym, mod).map((a) => {
       const score = a.k.split(',').reduce((n, w) => n + (rest.includes(w) ? w.length : 0), 0);
       return { a, score };
     }).sort((x, y) => y.score - x.score);

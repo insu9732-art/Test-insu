@@ -5,7 +5,7 @@ import {
 } from './saju.js';
 import { tojungOf } from './tojung.js';
 import { DREAM_CATEGORIES, DREAM_COUNT, searchDreams } from './dreams.js';
-import { SYMBOLS, GEN_COUNT, kindLabel, actionsFor, modifiersFor, interpret, searchGenerated } from './dream-gen.js';
+import { SYMBOLS, GEN_COUNT, kindLabel, actionsFor, modifiersFor, comboCount, interpret, searchGenerated } from './dream-gen.js';
 import { hanjaFor, analyzeName, suggestNames, soundElement, ELEMENT_NAMES } from './naming.js';
 import { APP_CONFIG, COUPANG_NOTICE } from './config.js';
 import { ZODIAC_LIFE } from './zodiac-life.js';
@@ -757,7 +757,7 @@ function situationsHtml(list) {
 function genBody(sym, modIdx, hits = new Set()) {
   const mods = modifiersFor(sym);
   const mod = mods[modIdx] || mods[0];
-  const list = actionsFor(sym).map((a) => ({ ...interpret(sym, a, mod) }))
+  const list = actionsFor(sym, mod).map((a) => ({ ...interpret(sym, a, mod) }))
     .map((r) => ({ ...r, hit: hits.has(r.title) }))
     .sort((a, b) => b.hit - a.hit);
   const chips = mods.length > 1
@@ -768,9 +768,9 @@ function genBody(sym, modIdx, hits = new Set()) {
 
 function genItem(sym, { open = false, modIdx = 0, hits } = {}) {
   const i = SYMBOLS.indexOf(sym);
-  const n = actionsFor(sym).length, m = modifiersFor(sym).length;
+  const n = comboCount(sym), m = modifiersFor(sym).length;
   return `<details class="dream-item gen" data-sym="${i}" data-mod="${modIdx}"${open ? ' open' : ''}>
-    <summary><b>${esc(sym.name)} 꿈</b> <span class="muted">상황 ${n}가지${m > 1 ? ` × 모양 ${m}가지` : ''} · ${kindLabel(sym.kind)}</span></summary>
+    <summary><b>${esc(sym.name)} 꿈</b> <span class="muted">풀이 ${n.toLocaleString()}가지${m > 1 ? ` · 모양 ${m}가지` : ''} · ${kindLabel(sym.kind)}</span></summary>
     <div class="gen-body">${open ? genBody(sym, modIdx, hits) : ''}</div>
   </details>`;
 }
@@ -792,7 +792,9 @@ function renderDreams() {
     const list = searchDreams(q);
     const gen = searchGenerated(q);
     // 조합 풀이에서 딱 맞는 상황이 나왔으면 그것부터
-    const genHit = gen.length && gen[0].results.some((r) => r.hit);
+    // 색·모양까지 맞춘 조합 풀이가 있거나 사전에 맞는 상황이 없으면 조합 풀이부터
+    const curHit = list.length && list[0].rank >= 100 && list[0].situations.some((x) => x.hit);
+    const genHit = gen.length && gen[0].results.some((r) => r.hit) && (gen[0].mod.w || !curHit);
     const genHtml = gen.map((g) => genItem(g.sym, {
       open: true, modIdx: modifiersFor(g.sym).indexOf(g.mod),
       hits: new Set(g.results.filter((r) => r.hit).map((r) => r.title)),

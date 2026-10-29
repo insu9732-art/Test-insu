@@ -1,5 +1,5 @@
 // 오프라인 캐시 — 파일을 바꾸면 VERSION을 올려 주세요
-const VERSION = 'saju-v14';
+const VERSION = 'saju-v15';
 const ASSETS = [
   './',
   'index.html',
@@ -15,6 +15,7 @@ const ASSETS = [
   'js/tojung-data.js',
   'js/zodiac-life.js',
   'js/dreams.js',
+  'js/dream-gen-more.js',
   'js/dream-gen.js',
   'js/dreams-animals.js',
   'js/dreams-people.js',
