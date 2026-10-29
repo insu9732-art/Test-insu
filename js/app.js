@@ -1,5 +1,5 @@
 import {
-  STEMS, STEMS_KO, BRANCHES, BRANCHES_KO, ELEMENTS_HANJA, BRANCH_ELEMENT, BRANCH_MAIN_STEM,
+  STEMS, STEMS_KO, BRANCHES, BRANCHES_KO, ZODIAC, ELEMENTS_HANJA, BRANCH_ELEMENT, BRANCH_MAIN_STEM,
   stemElement, calculateSaju, lunarToSolar, solarToLunar, tenGod, pillarName,
   yearPillarOf, todayPillar,
 } from './saju.js';
@@ -88,6 +88,11 @@ function updateDateHint() {
   if (!date) { hint.textContent = ''; return null; }
   if (date.y < 1900 || date.y > 2100) {
     hint.textContent = '1900년 ~ 2100년 사이로 입력해 주세요';
+    hint.classList.add('bad');
+    return null;
+  }
+  if (!form.calendar.value) {
+    hint.textContent = '위에서 양력/음력을 먼저 골라 주세요';
     hint.classList.add('bad');
     return null;
   }
@@ -213,9 +218,17 @@ function renderResult() {
     <h2>${esc(profile.name || '나')}의 사주 <span class="tag">${profile.gender === 'male' ? '남' : '여'}</span></h2>
     <p>${dateStr}${lunarStr}</p>
     <p>${timeStr}</p>
-    <p>${saju.zodiac}띠 · 일간 <b>${STEMS[dm]}(${STEMS_KO[dm]}${ELEMENTS_HANJA[stemElement(dm)]})</b> · ${saju.strength.label}</p>
+    <p>${zodiacText(saju, lunar)} · 일간 <b>${STEMS[dm]}(${STEMS_KO[dm]}${ELEMENTS_HANJA[stemElement(dm)]})</b> · ${saju.strength.label}</p>
   `;
   renderTab();
+}
+
+// 사주는 입춘 기준으로 해가 바뀌지만, 흔히 말하는 띠는 설날 기준이라 둘이 다르면 함께 알려준다
+function zodiacText(saju, lunar) {
+  const byLunar = lunar ? ZODIAC[(((lunar.year - 4) % 12) + 12) % 12] : saju.zodiac;
+  return byLunar === saju.zodiac
+    ? `${saju.zodiac}띠`
+    : `${byLunar}띠 (사주는 입춘 기준 ${saju.zodiac}해)`;
 }
 
 function renderTab() {
