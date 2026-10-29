@@ -3,33 +3,63 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1c1430" />
+  <meta name="theme-color" content="#0a246a" />
   <meta name="description" content="생년월일시로 보는 나의 사주팔자, 오행, 대운, 오늘의 운세" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="사주풀이" />
-  <title>사주풀이</title>
+  <meta name="apple-mobile-web-app-title" content="인수토정비결" />
+  <title>인수토정비결</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="appbar">
-    <button class="icon-btn" id="backBtn" aria-label="뒤로">‹</button>
-    <h1>사주풀이</h1>
-    <button class="icon-btn" id="savedBtn" aria-label="저장된 사주">☰</button>
+  <header class="titlebar">
+    <button class="tb-btn" id="backBtn" aria-label="뒤로">◀</button>
+    <img class="tb-icon" src="icons/icon.svg" alt="" width="18" height="18" />
+    <h1>인수토정비결</h1>
+    <button class="tb-btn tb-close" id="homeBtn" aria-label="처음 화면">✕</button>
   </header>
+  <nav class="menubar" aria-label="메뉴">
+    <button data-go="home">처음(<u>H</u>)</button>
+    <button data-go="input">사주·토정(<u>S</u>)</button>
+    <button data-go="dream">꿈해몽(<u>D</u>)</button>
+    <button data-go="naming">작명소(<u>N</u>)</button>
+    <button data-go="saved">보관함(<u>F</u>)</button>
+  </nav>
 
   <main>
-    <!-- 입력 화면 -->
-    <section id="inputView" class="view">
-      <div class="hero">
-        <img class="hero-symbol" src="icons/icon.svg" alt="" width="72" height="72" />
-        <p>태어난 날과 시간으로<br />나의 사주팔자를 풀어봅니다</p>
+    <!-- 처음 화면 -->
+    <section id="homeView" class="view">
+      <div class="win">
+        <div class="win-title">인수토정비결 <small>Ver 2.0</small></div>
+        <div class="win-body home">
+          <div class="splash">
+            <img src="icons/icon.svg" alt="" width="64" height="64" />
+            <div>
+              <b>인수토정비결</b>
+              <p>사주팔자 · 토정비결 · 꿈해몽 · 작명</p>
+            </div>
+          </div>
+          <div class="launcher">
+            <button data-go="input"><span class="glyph">四柱</span>사주풀이</button>
+            <button data-go="input" data-tab="tojung"><span class="glyph">土亭</span>토정비결</button>
+            <button data-go="dream"><span class="glyph">夢</span>꿈해몽</button>
+            <button data-go="naming"><span class="glyph">名</span>작명소</button>
+            <button data-go="saved"><span class="glyph">藏</span>보관함</button>
+            <button data-go="today"><span class="glyph">日</span>오늘운세</button>
+          </div>
+          <p class="note">재미와 참고용입니다. 중요한 결정은 스스로의 판단으로 하세요.</p>
+        </div>
       </div>
+    </section>
 
-      <form id="sajuForm" class="card" novalidate>
+    <!-- 생년월일시 입력 -->
+    <section id="inputView" class="view" hidden>
+      <div class="win">
+        <div class="win-title">생년월일시 입력</div>
+      <form id="sajuForm" class="win-body" novalidate>
         <label class="field">
           <span>이름 (선택)</span>
           <input type="text" name="name" maxlength="20" placeholder="홍길동" autocomplete="off" />
@@ -67,9 +97,12 @@
         </label>
 
         <p class="error" id="formError" role="alert"></p>
-        <button type="submit" class="primary">사주 보기</button>
+        <div class="dlg-buttons">
+          <button type="submit" class="btn-big"><span class="ok">✔</span> 다음</button>
+          <button type="button" class="btn-big" id="cancelBtn"><span class="no">✘</span> 취소</button>
+        </div>
       </form>
-      <p class="note">재미와 참고용입니다. 중요한 결정은 스스로의 판단으로 하세요.</p>
+      </div>
     </section>
 
     <!-- 결과 화면 -->
@@ -78,29 +111,91 @@
 
       <nav class="tabs" role="tablist">
         <button role="tab" data-tab="chart" class="active">원국</button>
-        <button role="tab" data-tab="elements">오행</button>
+        <button role="tab" data-tab="tojung">토정비결</button>
+        <button role="tab" data-tab="fortune">운세</button>
         <button role="tab" data-tab="personality">성격</button>
         <button role="tab" data-tab="life">종합</button>
-        <button role="tab" data-tab="tojung">토정</button>
+        <button role="tab" data-tab="elements">오행</button>
         <button role="tab" data-tab="daewoon">대운</button>
-        <button role="tab" data-tab="fortune">운세</button>
       </nav>
 
-      <div id="tabContent"></div>
+      <div id="tabContent" class="tab-page"></div>
 
       <div class="actions">
-        <button class="secondary" id="saveBtn">저장</button>
+        <button class="secondary" id="saveBtn">보관</button>
         <button class="secondary" id="shareBtn">공유</button>
         <button class="secondary" id="newBtn">새로 보기</button>
       </div>
     </section>
 
-    <!-- 저장 목록 -->
+    <!-- 꿈해몽 -->
+    <section id="dreamView" class="view" hidden>
+      <div class="win">
+        <div class="win-title">꿈해몽</div>
+        <div class="win-body">
+          <form id="dreamForm" class="searchbar">
+            <input type="search" id="dreamQuery" placeholder="꿈에 나온 것 (예: 돼지, 이빨, 불)" autocomplete="off" />
+            <button type="submit" class="btn">찾기</button>
+          </form>
+          <div class="chips" id="dreamCats"></div>
+          <div id="dreamResults" class="listbox"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 작명소 -->
+    <section id="namingView" class="view" hidden>
+      <div class="win">
+        <div class="win-title">작명소</div>
+        <div class="win-body">
+          <div class="segmented" role="radiogroup" aria-label="작명 방법">
+            <label><input type="radio" name="nameMode" value="suggest" checked /><span>이름 짓기</span></label>
+            <label><input type="radio" name="nameMode" value="analyze" /><span>이름 풀이</span></label>
+          </div>
+          <fieldset class="group">
+            <legend>성(姓)</legend>
+            <div class="row">
+              <input type="text" id="surname" maxlength="2" placeholder="김" autocomplete="off" />
+              <div id="surnameHanja" class="row"></div>
+            </div>
+          </fieldset>
+          <fieldset class="group" id="givenGroup" hidden>
+            <legend>이름</legend>
+            <div class="row">
+              <input type="text" id="givenName" maxlength="2" placeholder="민준" autocomplete="off" />
+            </div>
+            <div class="row" id="givenHanja"></div>
+          </fieldset>
+          <fieldset class="group" id="genderGroup">
+            <legend>성별</legend>
+            <div class="segmented" role="radiogroup">
+              <label><input type="radio" name="nameGender" value="male" checked /><span>남자</span></label>
+              <label><input type="radio" name="nameGender" value="female" /><span>여자</span></label>
+            </div>
+          </fieldset>
+          <label class="check" id="useSajuRow"><input type="checkbox" id="useSaju" checked /> <span id="useSajuText">사주에 맞춰 짓기</span></label>
+          <p class="error" id="nameError" role="alert"></p>
+          <div class="dlg-buttons">
+            <button type="button" class="btn-big" id="nameGo"><span class="ok">✔</span> 확인</button>
+            <button type="button" class="btn-big" id="nameMore" hidden>다른 이름</button>
+          </div>
+          <div id="nameResults"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 보관함 -->
     <section id="savedView" class="view" hidden>
-      <h2 class="section-title">저장된 사주</h2>
-      <ul id="savedList" class="saved-list"></ul>
+      <div class="win">
+        <div class="win-title">보관함</div>
+        <div class="win-body">
+          <ul id="savedList" class="saved-list"></ul>
+        </div>
+      </div>
     </section>
   </main>
+
+  <footer class="statusbar"><span id="statusText">준비</span><span id="statusDate"></span></footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

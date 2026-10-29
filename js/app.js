@@ -4,6 +4,8 @@ import {
   yearPillarOf, todayPillar,
 } from './saju.js';
 import { tojungOf } from './tojung.js';
+import { DREAM_CATEGORIES, searchDreams } from './dreams.js';
+import { hanjaFor, analyzeName, suggestNames, soundElement, ELEMENT_NAMES } from './naming.js';
 import { ZODIAC_LIFE } from './zodiac-life.js';
 import { lifeReading, sinsal, relations, monthlyFortune, daewoonReading, dailyDetail } from './reading.js';
 import { DAY_MASTER, ELEMENT_INFO, TEN_GOD_INFO, STRENGTH_INFO, PILLAR_MEANING } from './content.js';
@@ -12,29 +14,68 @@ const $ = (s) => document.querySelector(s);
 const STORAGE_KEY = 'saju.profiles.v1';
 
 const form = $('#sajuForm');
-const views = { input: $('#inputView'), result: $('#resultView'), saved: $('#savedView') };
-let current = null; // { profile, saju }
+const views = {
+  home: $('#homeView'), input: $('#inputView'), result: $('#resultView'),
+  dream: $('#dreamView'), naming: $('#namingView'), saved: $('#savedView'),
+};
+const VIEW_TITLE = { home: '준비', input: '생년월일시를 입력하세요', result: '사주 풀이', dream: '꿈해몽', naming: '작명소', saved: '보관함' };
+let current = null; // { profile, saju, solar }
 let activeTab = 'chart';
+let pendingTab = 'chart'; // 입력 후 처음 보여 줄 탭
+const navStack = ['home'];
 
 // ---------- 화면 전환 ----------
 
-function show(name) {
+function show(name, { push = true } = {}) {
   for (const [k, el] of Object.entries(views)) el.hidden = k !== name;
-  $('#backBtn').style.visibility = name === 'input' ? 'hidden' : 'visible';
+  if (push && navStack[navStack.length - 1] !== name) navStack.push(name);
+  $('#backBtn').style.visibility = navStack.length > 1 ? 'visible' : 'hidden';
+  $('#statusText').textContent = VIEW_TITLE[name] || '준비';
+  document.querySelectorAll('.menubar button').forEach((b) => b.classList.toggle('active', b.dataset.go === name || (name === 'result' && b.dataset.go === 'input')));
+  if (name === 'saved') renderSaved();
+  if (name === 'dream') renderDreams();
   window.scrollTo(0, 0);
 }
 
-$('#backBtn').style.visibility = 'hidden';
-$('#backBtn').addEventListener('click', () => show(current && !views.result.hidden ? 'input' : current ? 'result' : 'input'));
-$('#savedBtn').addEventListener('click', async () => { show('saved'); await renderSaved(); });
-$('#newBtn').addEventListener('click', () => show('input'));
+function goBack() {
+  if (navStack.length <= 1) return false;
+  navStack.pop();
+  show(navStack[navStack.length - 1], { push: false });
+  return true;
+}
+
+function go(target, tab) {
+  if (target === 'today') {
+    if (current) { activeTab = 'fortune'; renderTab(); show('result'); } else { pendingTab = 'fortune'; show('input'); }
+    return;
+  }
+  if (target === 'input') {
+    pendingTab = tab || 'chart';
+    if (current && tab) { activeTab = tab; renderTab(); show('result'); return; }
+  }
+  if (target === 'home') navStack.length = 0;
+  if (target === 'naming') prepareNaming();
+  show(target);
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-go]');
+  if (b) go(b.dataset.go, b.dataset.tab);
+});
+$('#backBtn').addEventListener('click', goBack);
+$('#homeBtn').addEventListener('click', () => go('home'));
+$('#newBtn').addEventListener('click', () => { pendingTab = activeTab; show('input'); });
+$('#cancelBtn').addEventListener('click', goBack);
+
+// 상태 표시줄 날짜: 2026년 10월 29일 (목)
+(() => {
+  const d = new Date();
+  const w = '일월화수목금토'[d.getDay()];
+  $('#statusDate').textContent = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${w})`;
+})();
 
 // 안드로이드 뒤로 가기 버튼: 앱 안에서 이전 화면으로, 첫 화면이면 false (앱 종료)
-window.handleAndroidBack = () => {
-  if (!views.input.hidden) return false;
-  $('#backBtn').click();
-  return true;
-};
+window.handleAndroidBack = () => goBack();
 
 // ---------- 입력 폼 ----------
 
@@ -197,7 +238,7 @@ function openProfile(profile) {
     longitudeCorrection: profile.correction ? -30 : 0,
   });
   current = { profile, saju, solar };
-  activeTab = 'chart';
+  activeTab = pendingTab || 'chart';
   renderResult();
   show('result');
   return true;
@@ -626,7 +667,7 @@ $('#shareBtn').addEventListener('click', async () => {
     + `${DAY_MASTER[saju.dayMaster].title} · ${saju.zodiac}띠 · ${saju.strength.label}`;
   if (window.AndroidBridge) { window.AndroidBridge.share(text); return; } // 안드로이드 앱
   if (navigator.share) {
-    try { await navigator.share({ title: '사주풀이', text, url: location.href }); return; } catch (e) {
+    try { await navigator.share({ title: '인수토정비결', text, url: location.href }); return; } catch (e) {
       if (e && e.name === 'AbortError') return; // 사용자가 취소
     }
   }
@@ -669,6 +710,132 @@ function toast(msg) {
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ---------- 꿈해몽 ----------
+
+let dreamCat = '';
+const LUCK_LABEL = ['흉몽', '보통', '길몽'];
+
+function renderDreams() {
+  $('#dreamCats').innerHTML = ['', ...DREAM_CATEGORIES].map((c) =>
+    `<button type="button" data-cat="${c}" class="${c === dreamCat ? 'active' : ''}">${c || '전체'}</button>`).join('');
+  const q = $('#dreamQuery').value.trim();
+  const list = searchDreams(q, dreamCat);
+  $('#dreamResults').innerHTML = list.length
+    ? list.map((d) => `<div class="dream-item">
+        <b>${esc(d.title)} 꿈</b><span class="luck luck-${d.luck}">${LUCK_LABEL[d.luck]}</span>
+        ${d.keys.length > 1 ? `<span class="muted">${esc(d.keys.slice(1).join(', '))}</span>` : ''}
+        <p>${esc(d.text)}</p>
+      </div>`).join('')
+    : `<p class="empty-msg">'${esc(q)}' 꿈은 아직 사전에 없어요. 다른 낱말로 찾아보세요.</p>`;
+  $('#statusText').textContent = `꿈해몽 · ${list.length}건`;
+}
+
+$('#dreamForm').addEventListener('submit', (e) => { e.preventDefault(); dreamCat = ''; renderDreams(); });
+$('#dreamQuery').addEventListener('input', () => { dreamCat = ''; renderDreams(); });
+$('#dreamCats').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  dreamCat = b.dataset.cat;
+  $('#dreamQuery').value = '';
+  renderDreams();
+});
+
+// ---------- 작명소 ----------
+
+let nameSeed = 0;
+const isHangulSyl = (c) => c >= '가' && c <= '힣';
+
+function hanjaSelects(container, text, prefix) {
+  const syls = [...text].filter(isHangulSyl);
+  const prev = [...container.querySelectorAll('select')].map((x) => x.value);
+  container.innerHTML = syls.map((syl, i) => {
+    const list = hanjaFor(syl);
+    if (!list.length) return `<p class="error">'${syl}'에 맞는 한자를 찾지 못했어요</p>`;
+    return `<select data-syl="${syl}" aria-label="${prefix} ${i + 1}번째 글자 한자">${list.map((h) =>
+      `<option value="${h.ch}"${prev[i] === h.ch ? ' selected' : ''}>${h.ch} ${h.meaning} ${syl} (${h.strokes}획)</option>`).join('')}</select>`;
+  }).join('');
+}
+
+function pickedChars(container) {
+  return [...container.querySelectorAll('select')].map((sel) => {
+    const h = hanjaFor(sel.dataset.syl).find((x) => x.ch === sel.value);
+    return { ch: h.ch, strokes: h.strokes, syl: sel.dataset.syl, meaning: h.meaning };
+  });
+}
+
+function nameMode() {
+  return document.querySelector('input[name="nameMode"]:checked').value;
+}
+
+function prepareNaming() {
+  const useRow = $('#useSajuRow');
+  useRow.hidden = !current;
+  if (current) {
+    const els = current.saju.strength.helpful.map((i) => ELEMENT_NAMES[i]).join('·');
+    $('#useSajuText').textContent = `${current.profile.name || '나'}의 사주에 맞춰 (도움 오행 ${els})`;
+    const g = document.querySelector(`input[name="nameGender"][value="${current.profile.gender}"]`);
+    if (g) g.checked = true;
+    if (!$('#surname').value && current.profile.name) {
+      $('#surname').value = current.profile.name[0];
+      hanjaSelects($('#surnameHanja'), $('#surname').value, '성');
+    }
+  }
+}
+
+document.querySelectorAll('input[name="nameMode"]').forEach((r) => r.addEventListener('change', () => {
+  const analyze = nameMode() === 'analyze';
+  $('#givenGroup').hidden = !analyze;
+  $('#genderGroup').hidden = analyze;
+  $('#nameMore').hidden = true;
+  $('#nameResults').innerHTML = '';
+  $('#nameError').textContent = '';
+}));
+$('#surname').addEventListener('input', () => hanjaSelects($('#surnameHanja'), $('#surname').value, '성'));
+$('#givenName').addEventListener('input', () => hanjaSelects($('#givenHanja'), $('#givenName').value, '이름'));
+
+function nameCard(sur, given, r, detailed) {
+  const full = [...sur, ...given];
+  const luckText = (l) => (l === 2 ? '<span class="good">길</span>' : l === 1 ? '반길' : '<span class="bad">흉</span>');
+  const flowText = r.flow.map((f) => (f === 1 ? '상생' : f === 0 ? '같음' : '상극')).join(' → ');
+  return `<div class="name-card">
+    <span class="score">${r.score}점</span>
+    <div class="name-big">${full.map((c) => c.syl).join('')}<small>${full.map((c) => c.ch).join('')}</small></div>
+    <p>${given.map((c) => `<b>${c.ch}</b> ${esc(c.meaning || '')} ${c.syl} (${c.strokes}획)`).join(' · ')}</p>
+    <table class="gyeok">
+      ${r.gyeok.map((g) => `<tr><th>${g.name}<br /><small>${g.age}</small></th><td>${g.n}수 ${luckText(g.luck)}${detailed ? `<br />${g.text}` : ''}</td></tr>`).join('')}
+    </table>
+    ${detailed ? `<p style="margin-top:8px"><b>발음오행</b> ${full.map((c) => `${c.syl}(${ELEMENT_NAMES[soundElement(c.syl)]})`).join(' → ')}<br />${flowText} ${r.flow.includes(-1) ? '— 서로 부딪치는 소리가 있어 아쉽습니다.' : '— 소리의 흐름이 순조롭습니다.'}</p>
+    <p><b>음양</b> ${r.yinYang.join(' ')} ${r.balanced ? '— 음과 양이 섞여 조화롭습니다.' : '— 한쪽으로 치우쳐 있습니다.'}</p>` : ''}
+    ${r.fit ? `<p class="muted" style="margin:6px 0 0">사주에 도움이 되는 소리가 ${r.fit}자 들어 있습니다.</p>` : ''}
+  </div>`;
+}
+
+$('#nameGo').addEventListener('click', () => { nameSeed = 0; runNaming(); });
+$('#nameMore').addEventListener('click', () => { nameSeed += 1; runNaming(); });
+
+function runNaming() {
+  $('#nameError').textContent = '';
+  const sur = pickedChars($('#surnameHanja'));
+  if (!sur.length) { $('#nameError').textContent = '성을 한글로 입력하고 한자를 골라 주세요.'; return; }
+  const helpful = current && $('#useSaju').checked && !$('#useSajuRow').hidden ? current.saju.strength.helpful : [];
+  if (nameMode() === 'analyze') {
+    const given = pickedChars($('#givenHanja'));
+    if (!given.length) { $('#nameError').textContent = '이름을 한글로 입력하고 한자를 골라 주세요.'; return; }
+    const r = analyzeName(sur, given.slice(0, 2), helpful);
+    $('#nameResults').innerHTML = nameCard(sur, given.slice(0, 2), r, true)
+      + '<p class="note">수리(획수)는 원획법 기준입니다. 성명학은 학파마다 기준이 조금씩 다릅니다.</p>';
+    return;
+  }
+  const gender = document.querySelector('input[name="nameGender"]:checked').value;
+  const list = suggestNames(sur, gender, helpful, 10, nameSeed);
+  $('#nameMore').hidden = false;
+  $('#nameResults').innerHTML = list.length
+    ? `<p class="note">수리 4격이 모두 길하고 소리가 순조로운 이름 ${list.length}개를 골랐습니다. 마음에 드는 이름은 '이름 풀이'에서 자세히 볼 수 있어요.</p>`
+      + list.map((r) => nameCard(sur, r.given, r, false)).join('')
+    : '<p class="empty-msg">조건에 맞는 이름을 찾지 못했어요. 성의 한자를 바꿔 보세요.</p>';
+  $('#statusText').textContent = `작명소 · ${list.length}개 추천`;
 }
 
 // ---------- PWA ----------

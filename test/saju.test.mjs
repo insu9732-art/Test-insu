@@ -108,3 +108,27 @@ test('토정비결: 상괘 = (나이 + 태세수) % 8', async () => {
   // 2026 丙午년: 丙7 + 午9 = 16, 1981년생 46세 → (46 + 16) % 8 = 6
   assert.equal(tojungOf({ year: 1981, month: 1, day: 29 }, 2026).code[0], '6');
 });
+
+test('안드로이드용 한 파일 묶음이 문법 오류 없이 만들어진다', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { readFileSync, mkdtempSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { tmpdir } = await import('node:os');
+  const out = join(mkdtempSync(join(tmpdir(), 'bundle-')), 'index.html');
+  execFileSync('python3', ['tools/bundle.py', 'android', out]);
+  const script = readFileSync(out, 'utf8').match(/<script>([\s\S]*)<\/script>/)[1];
+  assert.doesNotThrow(() => new Function(script));
+});
+
+test('꿈해몽 검색과 작명 추천', async () => {
+  const { searchDreams } = await import('../js/dreams.js');
+  const { suggestNames, analyzeName, HANJA } = await import('../js/naming.js');
+  assert.equal(searchDreams('돼지꿈')[0].title, '돼지');
+  const kim = [{ syl: '김', ch: '金', strokes: HANJA.get('金').strokes }];
+  const list = suggestNames(kim, 'female', [], 10);
+  assert.equal(list.length, 10);
+  for (const r of list) assert.ok(r.gyeok.every((g) => g.luck > 0) && !r.flow.includes(-1));
+  // 김민준(金民俊): 원격 5+9=14 → 14수
+  const r = analyzeName(kim, [{ syl: '민', ch: '民', strokes: 5 }, { syl: '준', ch: '俊', strokes: 9 }]);
+  assert.deepEqual(r.gyeok.map((g) => g.n), [14, 13, 17, 22]);
+});

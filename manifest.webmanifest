@@ -1,14 +1,14 @@
 {
-  "name": "사주풀이",
-  "short_name": "사주풀이",
+  "name": "인수토정비결",
+  "short_name": "인수토정비결",
   "description": "생년월일시로 보는 나의 사주팔자, 오행, 대운, 오늘의 운세",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1c1430",
-  "theme_color": "#1c1430",
+  "background_color": "#0a246a",
+  "theme_color": "#0a246a",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
