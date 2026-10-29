@@ -26,8 +26,16 @@
     <button data-go="input">사주·토정(<u>S</u>)</button>
     <button data-go="dream">꿈해몽(<u>D</u>)</button>
     <button data-go="naming">작명소(<u>N</u>)</button>
+    <button data-go="manse">만세력(<u>M</u>)</button>
     <button data-go="saved">보관함(<u>F</u>)</button>
+    <button data-go="settings">설정(<u>O</u>)</button>
   </nav>
+  <div class="adbar" id="adBar" hidden>
+    <a id="adBanner" href="#" target="_blank" rel="noopener sponsored">
+      <span class="ad-tag">AD</span><span class="ad-text" id="adText"></span><span class="ad-go">바로가기 ▶</span>
+    </a>
+    <small class="ad-notice" id="adNotice"></small>
+  </div>
 
   <main>
     <!-- 처음 화면 -->
@@ -47,8 +55,10 @@
             <button data-go="input" data-tab="tojung"><span class="glyph">土亭</span>토정비결</button>
             <button data-go="dream"><span class="glyph">夢</span>꿈해몽</button>
             <button data-go="naming"><span class="glyph">名</span>작명소</button>
-            <button data-go="saved"><span class="glyph">藏</span>보관함</button>
+            <button data-go="manse"><span class="glyph">曆</span>만세력</button>
             <button data-go="today"><span class="glyph">日</span>오늘운세</button>
+            <button data-go="saved"><span class="glyph">藏</span>보관함</button>
+            <button data-go="settings"><span class="glyph">設</span>설정</button>
           </div>
           <p class="note">재미와 참고용입니다. 중요한 결정은 스스로의 판단으로 하세요.</p>
         </div>
@@ -166,6 +176,11 @@
             </div>
             <div class="row" id="givenHanja"></div>
           </fieldset>
+          <fieldset class="group" id="nameBirthGroup">
+            <legend>태어난 날·시 (사주에 맞춰 짓기)</legend>
+            <div id="nameBirth"></div>
+            <button type="button" class="btn" id="nameLoad" hidden>보던 사주 불러오기</button>
+          </fieldset>
           <fieldset class="group" id="genderGroup">
             <legend>성별</legend>
             <div class="segmented" role="radiogroup">
@@ -173,13 +188,60 @@
               <label><input type="radio" name="nameGender" value="female" /><span>여자</span></label>
             </div>
           </fieldset>
-          <label class="check" id="useSajuRow"><input type="checkbox" id="useSaju" checked /> <span id="useSajuText">사주에 맞춰 짓기</span></label>
           <p class="error" id="nameError" role="alert"></p>
           <div class="dlg-buttons">
             <button type="button" class="btn-big" id="nameGo"><span class="ok">✔</span> 확인</button>
             <button type="button" class="btn-big" id="nameMore" hidden>다른 이름</button>
           </div>
           <div id="nameResults"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 만세력 -->
+    <section id="manseView" class="view" hidden>
+      <div class="win">
+        <div class="win-title">만세력</div>
+        <div class="win-body">
+          <div id="manseBirth"></div>
+          <div class="dlg-buttons">
+            <button type="button" class="btn-big" id="manseGo"><span class="ok">✔</span> 보기</button>
+            <button type="button" class="btn-big" id="manseToday">오늘</button>
+          </div>
+          <p class="error" id="manseError" role="alert"></p>
+          <div id="manseResult"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 설정 -->
+    <section id="settingsView" class="view" hidden>
+      <div class="win">
+        <div class="win-title">설정</div>
+        <div class="win-body">
+          <fieldset class="group">
+            <legend>쿠팡 배너 링크</legend>
+            <input type="text" id="setUrl" inputmode="url" placeholder="https://link.coupang.com/a/..." autocomplete="off" />
+          </fieldset>
+          <fieldset class="group">
+            <legend>배너 문구</legend>
+            <input type="text" id="setText" maxlength="30" placeholder="오늘의 특가 보러 가기" autocomplete="off" />
+          </fieldset>
+          <fieldset class="group">
+            <legend>배너를 누른 뒤 열어 둘 시간</legend>
+            <select id="setHours">
+              <option value="0">잠그지 않음 (배너만 보이기)</option>
+              <option value="1">1시간</option>
+              <option value="6">6시간</option>
+              <option value="24">24시간</option>
+              <option value="72">3일</option>
+            </select>
+          </fieldset>
+          <p class="note" id="setNotice"></p>
+          <div class="dlg-buttons">
+            <button type="button" class="btn-big" id="setSave"><span class="ok">✔</span> 저장</button>
+            <button type="button" class="btn-big" id="setTest">배너 시험</button>
+          </div>
         </div>
       </div>
     </section>
@@ -194,6 +256,18 @@
       </div>
     </section>
   </main>
+
+  <div class="modal" id="gate" hidden>
+    <div class="win" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+      <div class="win-title" id="gateTitle">이용 안내</div>
+      <div class="win-body">
+        <p class="gate-msg"><b id="gateWhat">사주풀이는</b> 아래 쿠팡 배너를 한 번 눌러 방문하시면 바로 이용하실 수 있습니다.</p>
+        <a class="gate-ad" id="gateAd" href="#" target="_blank" rel="noopener sponsored"><span class="ad-tag">AD</span> <span id="gateAdText"></span> ▶</a>
+        <small class="ad-notice" id="gateNotice"></small>
+        <div class="dlg-buttons"><button type="button" class="btn-big" id="gateClose">닫기</button></div>
+      </div>
+    </div>
+  </div>
 
   <footer class="statusbar"><span id="statusText">준비</span><span id="statusDate"></span></footer>
 

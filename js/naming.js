@@ -156,6 +156,8 @@ export const SURI = [
 ];
 
 const suri = (n) => SURI[((n - 1) % 80) + 1];
+// 수리오행: 격수의 끝자리 1·2 목, 3·4 화, 5·6 토, 7·8 금, 9·0 수
+export const suriElement = (n) => Math.floor(((n % 10) || 10) - 1) / 2 | 0;
 const reduce81 = (n) => ((n - 1) % 80) + 1;
 
 /**
@@ -178,7 +180,7 @@ export function analyzeName(sur, given, helpful = []) {
     { name: '형격', age: '청년운 (20~40세)', n: reduce81(hyung) },
     { name: '이격', age: '중년운 (40~60세)', n: reduce81(yi) },
     { name: '정격', age: '말년운·총운', n: reduce81(jung) },
-  ].map((x) => ({ ...x, luck: suri(x.n)[0], text: suri(x.n)[1] }));
+  ].map((x) => ({ ...x, luck: suri(x.n)[0], text: suri(x.n)[1], element: suriElement(x.n) }));
 
   const syllables = [...sur, ...given];
   const elements = syllables.map((c) => soundElement(c.syl));

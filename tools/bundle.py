@@ -23,7 +23,7 @@ def strip_module(js):
 
 
 app = re.sub(r"// ---------- PWA ----------[\s\S]*$", "", strip_module(read("js/app.js")))
-js = "\n".join([strip_module(read("js/lunar-data.js")), strip_module(read("js/saju.js")), strip_module(read("js/content.js")), strip_module(read("js/reading.js")), strip_module(read("js/tojung-data.js")), strip_module(read("js/tojung.js")), strip_module(read("js/zodiac-life.js")), strip_module(read("js/dreams-animals.js")), strip_module(read("js/dreams-people.js")), strip_module(read("js/dreams-world.js")), strip_module(read("js/dreams.js")), strip_module(read("js/hanja-data.js")), strip_module(read("js/naming.js")), app])
+js = "\n".join([strip_module(read("js/config.js")), strip_module(read("js/lunar-data.js")), strip_module(read("js/saju.js")), strip_module(read("js/content.js")), strip_module(read("js/reading.js")), strip_module(read("js/tojung-data.js")), strip_module(read("js/tojung.js")), strip_module(read("js/zodiac-life.js")), strip_module(read("js/dreams-animals.js")), strip_module(read("js/dreams-people.js")), strip_module(read("js/dreams-world.js")), strip_module(read("js/dreams.js")), strip_module(read("js/hanja-data.js")), strip_module(read("js/naming.js")), app])
 icon = "data:image/svg+xml;base64," + base64.b64encode((ROOT / "icons/icon.svg").read_bytes()).decode()
 body = re.search(r"<body>([\s\S]*?)<script type=\"module\"", read("index.html")).group(1)
 body = body.replace('src="icons/icon.svg"', f'src="{icon}"')

@@ -1,11 +1,12 @@
 import {
   STEMS, STEMS_KO, BRANCHES, BRANCHES_KO, ZODIAC, ELEMENTS_HANJA, BRANCH_ELEMENT, BRANCH_MAIN_STEM,
-  stemElement, calculateSaju, lunarToSolar, solarToLunar, tenGod, pillarName,
+  stemElement, calculateSaju, lunarToSolar, solarToLunar, tenGod, pillarName, surroundingJie,
   yearPillarOf, todayPillar,
 } from './saju.js';
 import { tojungOf } from './tojung.js';
 import { DREAM_CATEGORIES, DREAM_COUNT, searchDreams } from './dreams.js';
 import { hanjaFor, analyzeName, suggestNames, soundElement, ELEMENT_NAMES } from './naming.js';
+import { APP_CONFIG, COUPANG_NOTICE } from './config.js';
 import { ZODIAC_LIFE } from './zodiac-life.js';
 import { lifeReading, sinsal, relations, monthlyFortune, daewoonReading, dailyDetail } from './reading.js';
 import { DAY_MASTER, ELEMENT_INFO, TEN_GOD_INFO, STRENGTH_INFO, PILLAR_MEANING } from './content.js';
@@ -17,8 +18,12 @@ const form = $('#sajuForm');
 const views = {
   home: $('#homeView'), input: $('#inputView'), result: $('#resultView'),
   dream: $('#dreamView'), naming: $('#namingView'), saved: $('#savedView'),
+  manse: $('#manseView'), settings: $('#settingsView'),
 };
-const VIEW_TITLE = { home: '준비', input: '생년월일시를 입력하세요', result: '사주 풀이', dream: '꿈해몽', naming: '작명소', saved: '보관함' };
+const VIEW_TITLE = {
+  home: '준비', input: '생년월일시를 입력하세요', result: '사주 풀이', dream: '꿈해몽',
+  naming: '작명소', saved: '보관함', manse: '만세력', settings: '설정',
+};
 let current = null; // { profile, saju, solar }
 let activeTab = 'chart';
 let pendingTab = 'chart'; // 입력 후 처음 보여 줄 탭
@@ -55,6 +60,9 @@ function go(target, tab) {
   }
   if (target === 'home') navStack.length = 0;
   if (target === 'naming') prepareNaming();
+  if (target === 'dream') { requireUnlock('꿈해몽', () => show('dream')); return; }
+  if (target === 'manse' && !$('#manseResult').innerHTML) showManse(todayBirth());
+  if (target === 'settings') fillSettings();
   show(target);
 }
 
@@ -213,8 +221,10 @@ form.addEventListener('submit', (e) => {
     sijin: !exact && sijin >= 0 ? sijin : null,
     correction: form.correction.checked,
   };
-  const ok = openProfile(profile);
-  if (!ok) fail('해당 음력 날짜를 찾을 수 없어요. 윤달 여부를 확인해 주세요.');
+  requireUnlock('사주풀이', () => {
+    const ok = openProfile(profile);
+    if (!ok) fail('해당 음력 날짜를 찾을 수 없어요. 윤달 여부를 확인해 주세요.');
+  });
 });
 
 renderSijin();
@@ -772,19 +782,25 @@ function nameMode() {
 }
 
 function prepareNaming() {
-  const useRow = $('#useSajuRow');
-  useRow.hidden = !current;
-  if (current) {
-    const els = current.saju.strength.helpful.map((i) => ELEMENT_NAMES[i]).join('·');
-    $('#useSajuText').textContent = `${current.profile.name || '나'}의 사주에 맞춰 (도움 오행 ${els})`;
-    const g = document.querySelector(`input[name="nameGender"][value="${current.profile.gender}"]`);
-    if (g) g.checked = true;
-    if (!$('#surname').value && current.profile.name) {
-      $('#surname').value = current.profile.name[0];
-      hanjaSelects($('#surnameHanja'), $('#surname').value, '성');
-    }
+  $('#nameLoad').hidden = !current;
+  if (current && !$('#surname').value && current.profile.name) {
+    $('#surname').value = current.profile.name[0];
+    hanjaSelects($('#surnameHanja'), $('#surname').value, '성');
   }
 }
+
+$('#nameLoad').addEventListener('click', () => {
+  if (!current) return;
+  const p = current.profile;
+  nameBirth.set({
+    calendar: p.calendar === 'lunar' ? (p.leap ? 'lunar-leap' : 'lunar') : 'solar',
+    digits: `${p.date.y}${pad2(p.date.m)}${pad2(p.date.d)}`,
+    sijin: p.sijin != null ? p.sijin : p.time ? sijinOf(p.time) : '',
+  });
+  const g = document.querySelector(`input[name="nameGender"][value="${p.gender}"]`);
+  if (g) g.checked = true;
+  toast('사주를 불러왔어요');
+});
 
 document.querySelectorAll('input[name="nameMode"]').forEach((r) => r.addEventListener('change', () => {
   const analyze = nameMode() === 'analyze';
@@ -797,7 +813,7 @@ document.querySelectorAll('input[name="nameMode"]').forEach((r) => r.addEventLis
 $('#surname').addEventListener('input', () => hanjaSelects($('#surnameHanja'), $('#surname').value, '성'));
 $('#givenName').addEventListener('input', () => hanjaSelects($('#givenHanja'), $('#givenName').value, '이름'));
 
-function nameCard(sur, given, r, detailed) {
+function nameCard(sur, given, r, detailed, helpful = []) {
   const full = [...sur, ...given];
   const luckText = (l) => (l === 2 ? '<span class="good">길</span>' : l === 1 ? '반길' : '<span class="bad">흉</span>');
   const flowText = r.flow.map((f) => (f === 1 ? '상생' : f === 0 ? '같음' : '상극')).join(' → ');
@@ -808,7 +824,9 @@ function nameCard(sur, given, r, detailed) {
     <table class="gyeok">
       ${r.gyeok.map((g) => `<tr><th>${g.name}<br /><small>${g.age}</small></th><td>${g.n}수 ${luckText(g.luck)}${detailed ? `<br />${g.text}` : ''}</td></tr>`).join('')}
     </table>
-    ${detailed ? `<p style="margin-top:8px"><b>발음오행</b> ${full.map((c) => `${c.syl}(${ELEMENT_NAMES[soundElement(c.syl)]})`).join(' → ')}<br />${flowText} ${r.flow.includes(-1) ? '— 서로 부딪치는 소리가 있어 아쉽습니다.' : '— 소리의 흐름이 순조롭습니다.'}</p>
+    <p style="margin:6px 0 0"><b>음령오행</b> ${full.map((c) => `${c.syl}${helpful.includes(soundElement(c.syl)) && given.includes(c) ? '★' : ''}(${ELEMENT_NAMES[soundElement(c.syl)][0]})`).join(' → ')}</p>
+    ${detailed ? `<p><b>수리오행</b> ${r.gyeok.map((g) => `${g.name} ${ELEMENT_NAMES[g.element][0]}`).join(' · ')}</p>
+    <p style="margin-top:8px"><b>소리 흐름</b> ${flowText} ${r.flow.includes(-1) ? '— 서로 부딪치는 소리가 있어 아쉽습니다.' : '— 소리의 흐름이 순조롭습니다.'}</p>
     <p><b>음양</b> ${r.yinYang.join(' ')} ${r.balanced ? '— 음과 양이 섞여 조화롭습니다.' : '— 한쪽으로 치우쳐 있습니다.'}</p>` : ''}
     ${r.fit ? `<p class="muted" style="margin:6px 0 0">사주에 도움이 되는 소리가 ${r.fit}자 들어 있습니다.</p>` : ''}
   </div>`;
@@ -821,24 +839,285 @@ function runNaming() {
   $('#nameError').textContent = '';
   const sur = pickedChars($('#surnameHanja'));
   if (!sur.length) { $('#nameError').textContent = '성을 한글로 입력하고 한자를 골라 주세요.'; return; }
-  const helpful = current && $('#useSaju').checked && !$('#useSajuRow').hidden ? current.saju.strength.helpful : [];
-  if (nameMode() === 'analyze') {
-    const given = pickedChars($('#givenHanja'));
-    if (!given.length) { $('#nameError').textContent = '이름을 한글로 입력하고 한자를 골라 주세요.'; return; }
-    const r = analyzeName(sur, given.slice(0, 2), helpful);
-    $('#nameResults').innerHTML = nameCard(sur, given.slice(0, 2), r, true)
-      + '<p class="note">수리(획수)는 원획법 기준입니다. 성명학은 학파마다 기준이 조금씩 다릅니다.</p>';
-    return;
-  }
+  const birth = nameBirth.read();
+  if (birth.error) { $('#nameError').textContent = birth.error; return; }
   const gender = document.querySelector('input[name="nameGender"]:checked').value;
-  const list = suggestNames(sur, gender, helpful, 10, nameSeed);
-  $('#nameMore').hidden = false;
-  $('#nameResults').innerHTML = list.length
-    ? `<p class="note">수리 4격이 모두 길하고 소리가 순조로운 이름 ${list.length}개를 골랐습니다. 마음에 드는 이름은 '이름 풀이'에서 자세히 볼 수 있어요.</p>`
-      + list.map((r) => nameCard(sur, r.given, r, false)).join('')
-    : '<p class="empty-msg">조건에 맞는 이름을 찾지 못했어요. 성의 한자를 바꿔 보세요.</p>';
-  $('#statusText').textContent = `작명소 · ${list.length}개 추천`;
+  requireUnlock('작명', () => {
+    let helpful = [];
+    let sajuHtml = '';
+    if (birth.solar) {
+      const saju = sajuOfBirth(birth, gender);
+      helpful = saju.strength.helpful;
+      sajuHtml = sajuSummaryCard(saju, birth, '아기 사주 (만세력)');
+    }
+    if (nameMode() === 'analyze') {
+      const given = pickedChars($('#givenHanja'));
+      if (!given.length) { $('#nameError').textContent = '이름을 한글로 입력하고 한자를 골라 주세요.'; return; }
+      const r = analyzeName(sur, given.slice(0, 2), helpful);
+      $('#nameResults').innerHTML = sajuHtml + nameCard(sur, given.slice(0, 2), r, true, helpful)
+        + '<p class="note">수리(획수)는 원획법, 음령오행은 첫소리(ㄱㅋ 목 · ㄴㄷㄹㅌ 화 · ㅇㅎ 토 · ㅅㅈㅊ 금 · ㅁㅂㅍ 수) 기준입니다. 성명학은 학파마다 기준이 조금씩 다릅니다.</p>';
+      return;
+    }
+    const list = suggestNames(sur, gender, helpful, 10, nameSeed);
+    $('#nameMore').hidden = false;
+    $('#nameResults').innerHTML = sajuHtml + (list.length
+      ? `<p class="note">수리 4격이 모두 길하고 소리의 흐름이 순조로운 이름 ${list.length}개입니다.${helpful.length ? ` 사주에 필요한 ${helpful.map((i) => ELEMENT_NAMES[i]).join('·')} 기운의 소리를 먼저 골랐습니다.` : ' 태어난 날을 넣으면 사주에 맞춰 골라 드려요.'}</p>`
+        + list.map((r) => nameCard(sur, r.given, r, false, helpful)).join('')
+      : '<p class="empty-msg">조건에 맞는 이름을 찾지 못했어요. 성의 한자를 바꿔 보세요.</p>');
+    $('#statusText').textContent = `작명소 · ${list.length}개 추천`;
+  });
 }
+
+// ---------- 태어난 날·시 입력 (작명소·만세력 공용) ----------
+
+function sijinOf(time) {
+  const [h, m] = time.split(':').map(Number);
+  return Math.floor(((h * 60 + m - 30 + 60 + 1440) % 1440) / 120);
+}
+
+function birthWidget(el, id, { defaultCalendar = 'solar', placeholder = '숫자 8자리 예) 20250315' } = {}) {
+  el.innerHTML = `
+    <div class="segmented cal" role="radiogroup" aria-label="양력/음력">
+      ${[['solar', '양력'], ['lunar', '음력'], ['lunar-leap', '음력 윤달']].map(([v, t]) =>
+        `<label><input type="radio" name="${id}Cal" value="${v}"${v === defaultCalendar ? ' checked' : ''} /><span>${t}</span></label>`).join('')}
+    </div>
+    <input type="text" id="${id}Date" inputmode="numeric" maxlength="10" placeholder="${placeholder}" autocomplete="off" />
+    <small class="hint" id="${id}Hint"></small>
+    <select id="${id}Time" aria-label="태어난 시">
+      <option value="">태어난 시 모름</option>
+      ${BRANCHES_KO.map((b, i) => `<option value="${i}">${b}시 (${sijinRange(i)})</option>`).join('')}
+    </select>`;
+  const dateEl = el.querySelector(`#${id}Date`);
+  const hintEl = el.querySelector(`#${id}Hint`);
+  const cal = () => el.querySelector(`input[name="${id}Cal"]:checked`).value;
+
+  function resolve() {
+    const digits = dateEl.value.replace(/\D/g, '').slice(0, 8);
+    dateEl.value = [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6, 8)].filter(Boolean).join('.');
+    hintEl.classList.remove('bad');
+    hintEl.textContent = '';
+    if (!digits) return { empty: true };
+    const d = parseDate(digits);
+    if (!d) return { error: '날짜는 숫자 8자리로 넣어 주세요. 예) 20250315' };
+    if (d.y < 1900 || d.y > 2100) return { error: '1900년 ~ 2100년 사이로 넣어 주세요' };
+    let solar;
+    let lunar;
+    if (cal().startsWith('lunar')) {
+      const leap = cal() === 'lunar-leap';
+      solar = d.m >= 1 && d.m <= 12 ? lunarToSolar(d.y, d.m, d.d, leap) : null;
+      if (!solar) return { error: `음력 ${d.y}년 ${leap ? '윤' : ''}${d.m}월 ${d.d}일은 없는 날짜예요` };
+      lunar = { year: d.y, month: d.m, day: d.d, leap };
+    } else {
+      if (!isValidSolar(d)) return { error: `${d.y}년 ${d.m}월 ${d.d}일은 없는 날짜예요` };
+      solar = { year: d.y, month: d.m, day: d.d };
+      lunar = solarToLunar(d.y, d.m, d.d);
+    }
+    hintEl.textContent = `양력 ${solar.year}.${solar.month}.${solar.day} · 음력 ${lunar.year}.${lunar.leap ? '윤' : ''}${lunar.month}.${lunar.day}`;
+    return { solar, lunar };
+  }
+
+  function show() {
+    const r = resolve();
+    if (r.error) { hintEl.textContent = r.error; hintEl.classList.add('bad'); }
+    return r;
+  }
+  dateEl.addEventListener('input', show);
+  el.querySelectorAll(`input[name="${id}Cal"]`).forEach((x) => x.addEventListener('change', show));
+
+  return {
+    read() {
+      const r = show();
+      if (r.error) return { error: r.error };
+      if (r.empty) return {};
+      const t = el.querySelector(`#${id}Time`).value;
+      const s = t === '' ? null : Number(t);
+      return { ...r, sijin: s, hour: s == null ? null : (s * 2) % 24, minute: s == null ? null : 30 };
+    },
+    set({ calendar, digits, sijin: sj }) {
+      const radio = el.querySelector(`input[name="${id}Cal"][value="${calendar}"]`);
+      if (radio) radio.checked = true;
+      dateEl.value = digits;
+      el.querySelector(`#${id}Time`).value = sj === '' || sj == null ? '' : String(sj);
+      show();
+    },
+  };
+}
+
+function sajuOfBirth(birth, gender = 'male') {
+  return calculateSaju({ ...birth.solar, hour: birth.hour, minute: birth.minute, gender, longitudeCorrection: -30 });
+}
+
+function pillarsRow(saju) {
+  const order = [['hour', '시주'], ['day', '일주'], ['month', '월주'], ['year', '연주']];
+  return `<div class="pillars">${order.map(([k, label]) => {
+    const p = saju.pillars[k];
+    return `<div><div class="pillar-head">${label}</div>
+      ${p ? charBox(p.stem, true) : '<div class="char empty">?</div>'}
+      <div style="height:4px"></div>
+      ${p ? charBox(p.branch, false) : '<div class="char empty">?</div>'}</div>`;
+  }).join('')}</div>`;
+}
+
+function elementBars(counts) {
+  const total = counts.reduce((a, b) => a + b, 0) || 1;
+  const colors = ['var(--wood)', 'var(--fire)', 'var(--earth)', 'var(--metal)', 'var(--water)'];
+  return `<div class="bars" style="margin-top:10px">${counts.map((c, i) => `
+    <div class="bar-row"><span>${ELEMENT_NAMES[i]}</span>
+      <div class="bar"><i style="width:${(c / total) * 100}%;background:${colors[i]}"></i></div><b>${c}</b></div>`).join('')}</div>`;
+}
+
+function sajuSummaryCard(saju, birth, title) {
+  const lacking = saju.elements.map((c, i) => (c === 0 ? i : -1)).filter((i) => i >= 0);
+  const colors = ['var(--wood)', 'var(--fire)', 'var(--earth)', 'var(--metal)', 'var(--water)'];
+  return `<div class="card">
+    <h3>${title}</h3>
+    <p class="note">양력 ${birth.solar.year}.${birth.solar.month}.${birth.solar.day} · 음력 ${birth.lunar.year}.${birth.lunar.leap ? '윤' : ''}${birth.lunar.month}.${birth.lunar.day}${birth.sijin != null ? ` · ${BRANCHES_KO[birth.sijin]}시` : ' · 시 모름'} · ${saju.zodiac}띠</p>
+    ${pillarsRow(saju)}
+    ${elementBars(saju.elements)}
+    <p style="margin-top:10px"><b>일간</b> ${STEMS[saju.dayMaster]}(${STEMS_KO[saju.dayMaster]}${ELEMENTS_HANJA[stemElement(saju.dayMaster)]}) · ${saju.strength.label}${lacking.length ? ` · 없는 오행 ${lacking.map((i) => ELEMENT_NAMES[i]).join('·')}` : ''}</p>
+    <p><b>이름에 넣으면 좋은 기운</b><br />${saju.strength.helpful.map((i) => `<span class="need" style="background:${colors[i]}">${ELEMENT_NAMES[i]}</span>`).join('')}
+      <span class="muted">음령오행 ${saju.strength.helpful.map((i) => ['ㄱㅋ', 'ㄴㄷㄹㅌ', 'ㅇㅎ', 'ㅅㅈㅊ', 'ㅁㅂㅍ'][i]).join(' / ')}으로 시작하는 소리</span></p>
+  </div>`;
+}
+
+// ---------- 만세력 ----------
+
+function todayBirth() {
+  const k = new Date(Date.now() + 9 * 3600000);
+  const solar = { year: k.getUTCFullYear(), month: k.getUTCMonth() + 1, day: k.getUTCDate() };
+  const h = k.getUTCHours();
+  const s = Math.floor(((h * 60 + k.getUTCMinutes() - 30 + 60 + 1440) % 1440) / 120);
+  return { solar, lunar: solarToLunar(solar.year, solar.month, solar.day), sijin: s, hour: (s * 2) % 24, minute: 30 };
+}
+
+function kstString(ms) {
+  const d = new Date(ms + 9 * 3600000);
+  return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+}
+
+function showManse(birth) {
+  const saju = sajuOfBirth(birth);
+  const { year, month, day } = birth.solar;
+  const ms = Date.UTC(year, month - 1, day, birth.hour ?? 12, birth.minute ?? 0) - 9 * 3600000;
+  const jie = surroundingJie(ms);
+  const week = '일월화수목금토'[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
+  $('#manseResult').innerHTML = `<div class="card">
+    <h3>${year}년 ${month}월 ${day}일 (${week}) 만세력</h3>
+    <dl class="manse-head">
+      <dt>양력</dt><dd>${year}년 ${month}월 ${day}일 ${week}요일</dd>
+      <dt>음력</dt><dd>${birth.lunar.year}년 ${birth.lunar.leap ? '윤' : ''}${birth.lunar.month}월 ${birth.lunar.day}일</dd>
+      <dt>간지</dt><dd>${pillarName(saju.pillars.year)}년 ${pillarName(saju.pillars.month)}월 ${pillarName(saju.pillars.day)}일${saju.pillars.hour ? ` ${pillarName(saju.pillars.hour)}시` : ''}</dd>
+      <dt>띠</dt><dd>${saju.zodiac}띠 (입춘 기준)</dd>
+      <dt>절기</dt><dd>${jie.prev.name} ${kstString(jie.prev.ms)} → ${jie.next.name} ${kstString(jie.next.ms)}</dd>
+    </dl>
+    ${pillarsRow(saju)}
+    ${elementBars(saju.elements)}
+  </div>`;
+}
+
+const manseBirth = birthWidget($('#manseBirth'), 'manse', { placeholder: '숫자 8자리 예) 19810129' });
+const nameBirth = birthWidget($('#nameBirth'), 'nb');
+
+$('#manseGo').addEventListener('click', () => {
+  $('#manseError').textContent = '';
+  const b = manseBirth.read();
+  if (b.error) { $('#manseError').textContent = b.error; return; }
+  if (!b.solar) { $('#manseError').textContent = '날짜를 숫자 8자리로 넣어 주세요.'; return; }
+  showManse(b);
+});
+$('#manseToday').addEventListener('click', () => {
+  const t = todayBirth();
+  manseBirth.set({ calendar: 'solar', digits: `${t.solar.year}${pad2(t.solar.month)}${pad2(t.solar.day)}`, sijin: t.sijin });
+  showManse(t);
+});
+
+// ---------- 쿠팡 배너·잠금 ----------
+
+const SETTINGS_KEY = 'saju.settings.v1';
+const UNLOCK_KEY = 'saju.unlockUntil';
+
+function settings() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch { /* 기본값 */ }
+  return { ...APP_CONFIG, ...saved };
+}
+
+function isUnlocked() {
+  const cfg = settings();
+  if (!cfg.coupangUrl || !Number(cfg.unlockHours)) return true;
+  try { return Number(localStorage.getItem(UNLOCK_KEY) || 0) > Date.now(); } catch { return true; }
+}
+
+function unlock() {
+  const hours = Number(settings().unlockHours) || 0;
+  try { localStorage.setItem(UNLOCK_KEY, String(Date.now() + hours * 3600000)); } catch { /* 저장 못 해도 이번엔 통과 */ }
+}
+
+let pendingAction = null;
+
+function requireUnlock(what, action) {
+  if (isUnlocked()) { action(); return; }
+  pendingAction = action;
+  const last = what.charCodeAt(what.length - 1) - 0xac00;
+  $('#gateWhat').textContent = what + (last >= 0 && last % 28 ? '은' : '는');
+  $('#gate').hidden = false;
+}
+
+function openAd(e) {
+  const url = settings().coupangUrl;
+  if (!url) { e.preventDefault(); return; }
+  if (window.AndroidBridge && window.AndroidBridge.openUrl) {
+    e.preventDefault();
+    window.AndroidBridge.openUrl(url);
+  }
+  unlock();
+  if (!$('#gate').hidden) {
+    $('#gate').hidden = true;
+    const action = pendingAction;
+    pendingAction = null;
+    if (action) setTimeout(action, 300);
+  }
+}
+
+function renderAd() {
+  const cfg = settings();
+  const has = Boolean(cfg.coupangUrl);
+  $('#adBar').hidden = !has;
+  for (const a of [$('#adBanner'), $('#gateAd')]) a.href = has ? cfg.coupangUrl : '#';
+  $('#adText').textContent = cfg.bannerText || '오늘의 특가 보러 가기';
+  $('#gateAdText').textContent = cfg.bannerText || '오늘의 특가 보러 가기';
+  $('#adNotice').textContent = COUPANG_NOTICE;
+  $('#gateNotice').textContent = COUPANG_NOTICE;
+}
+
+$('#adBanner').addEventListener('click', openAd);
+$('#gateAd').addEventListener('click', openAd);
+$('#gateClose').addEventListener('click', () => { $('#gate').hidden = true; pendingAction = null; });
+
+function fillSettings() {
+  const cfg = settings();
+  $('#setUrl').value = cfg.coupangUrl || '';
+  $('#setText').value = cfg.bannerText || '';
+  $('#setHours').value = String(cfg.unlockHours ?? 24);
+  $('#setNotice').textContent = `배너 아래에 "${COUPANG_NOTICE}" 문구가 함께 표시됩니다.`;
+}
+
+$('#setSave').addEventListener('click', () => {
+  const url = $('#setUrl').value.trim();
+  if (url && !/^https?:\/\//.test(url)) { toast('링크는 https:// 로 시작해야 해요'); return; }
+  const next = { coupangUrl: url, bannerText: $('#setText').value.trim(), unlockHours: Number($('#setHours').value) };
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch { toast('저장할 수 없어요'); return; }
+  try { localStorage.removeItem(UNLOCK_KEY); } catch { /* 무시 */ }
+  renderAd();
+  toast(url ? '저장했어요. 위쪽에 배너가 보입니다' : '저장했어요. 링크가 없으면 배너가 숨겨집니다');
+});
+$('#setTest').addEventListener('click', () => {
+  try { localStorage.removeItem(UNLOCK_KEY); } catch { /* 무시 */ }
+  requireUnlock('사주풀이', () => toast('잠금이 풀렸어요'));
+  if (isUnlocked()) toast('링크가 없거나 잠그지 않음으로 되어 있어요');
+});
+
+renderAd();
 
 // ---------- PWA ----------
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {

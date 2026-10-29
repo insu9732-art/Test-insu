@@ -1,11 +1,12 @@
 // 오프라인 캐시 — 파일을 바꾸면 VERSION을 올려 주세요
-const VERSION = 'saju-v7';
+const VERSION = 'saju-v8';
 const ASSETS = [
   './',
   'index.html',
   'styles.css',
   'manifest.webmanifest',
   'js/app.js',
+  'js/config.js',
   'js/saju.js',
   'js/lunar-data.js',
   'js/content.js',
