@@ -10,14 +10,15 @@ android {
         applicationId 'com.saju.app'
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        // GitHub Actions 실행 번호를 버전으로 써서 새 APK 가 기존 앱 위에 업데이트되게 한다
+        versionCode((System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger())
+        versionName "1.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            // 개인 설치용: 디버그 키로 서명해 바로 설치할 수 있게 한다
+            // 개인 설치용: 디버그 키로 서명 (워크플로가 키를 캐시해 빌드마다 같은 키를 쓴다)
             signingConfig signingConfigs.debug
         }
     }

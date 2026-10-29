@@ -27,6 +27,13 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      # 서명 키를 빌드 사이에 유지해야 새 APK 가 기존 앱 위에 업데이트 설치된다
+      - name: Restore signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: saju-debug-keystore-v1
+
       - name: Test saju engine
         run: npm test
 

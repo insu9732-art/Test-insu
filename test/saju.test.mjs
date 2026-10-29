@@ -61,3 +61,22 @@ test('대운: 양년생 남자는 순행', () => {
   const f = calculateSaju({ year: 1990, month: 5, day: 15, hour: 10, minute: 30, gender: 'female' });
   assert.equal(pillarName(f.daewoon.list[0]), '庚辰');
 });
+
+test('내장 음력 표가 1900~2100년 모든 날짜에서 ICU(dangi)와 일치', () => {
+  const fmt = new Intl.DateTimeFormat('ko-KR-u-ca-dangi', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC' });
+  for (let t = Date.UTC(1900, 0, 1); t <= Date.UTC(2100, 11, 31); t += 86400000) {
+    const p = fmt.formatToParts(new Date(t));
+    const g = (k) => p.find((x) => x.type === k).value;
+    const exp = { year: +g('relatedYear'), month: +g('month').replace(/\D/g, ''), day: +g('day'), leap: g('month').includes('윤') };
+    const dt = new Date(t);
+    const got = solarToLunar(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+    assert.deepEqual(got, exp, dt.toISOString());
+    assert.deepEqual(lunarToSolar(exp.year, exp.month, exp.day, exp.leap),
+      { year: dt.getUTCFullYear(), month: dt.getUTCMonth() + 1, day: dt.getUTCDate() });
+  }
+});
+
+test('음력 1981년 1월 29일 = 양력 1981년 3월 5일, 30일은 없음', () => {
+  assert.deepEqual(lunarToSolar(1981, 1, 29), { year: 1981, month: 3, day: 5 });
+  assert.equal(lunarToSolar(1981, 1, 30), null);
+});

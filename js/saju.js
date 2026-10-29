@@ -3,6 +3,8 @@
 // - 일주: 1900-01-01 = 甲戌일 기준 60갑자 순환
 // - 시주: 일간 기준 시두법, 23시부터 다음 날 子시
 
+import { LUNAR_DATA, LUNAR_FIRST_YEAR } from './lunar-data.js';
+
 export const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 export const STEMS_KO = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계'];
 export const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
@@ -111,41 +113,53 @@ export function isKoreaDst(y, mo, d, h, mi) {
   return KOREA_DST.some(([s, e]) => t >= s && t < e);
 }
 
-// ---------- 음력 → 양력 ----------
+// ---------- 음력 ↔ 양력 ----------
+// 기기 브라우저의 음력 지원 여부와 상관없이 동작하도록 내장 표(lunar-data.js)를 쓴다
 
-let lunarFormatter = null;
-function lunarParts(ms) {
-  if (!lunarFormatter) {
-    lunarFormatter = new Intl.DateTimeFormat('ko-KR-u-ca-dangi', {
-      year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC',
-    });
+const LUNAR_YEARS = [];
+for (let i = 0; i * 6 < LUNAR_DATA.length; i++) {
+  const row = LUNAR_DATA.slice(i * 6, i * 6 + 6);
+  const year = LUNAR_FIRST_YEAR + i;
+  const leapMonth = parseInt(row[2], 36);
+  const bits = parseInt(row.slice(3), 36).toString(2).padStart(13, '0');
+  const count = leapMonth ? 13 : 12;
+  const months = []; // { month, leap, days }
+  let m = 1;
+  for (let k = 0; k < count; k++) {
+    const leap = leapMonth > 0 && k === leapMonth; // 윤달은 같은 번호의 평달 바로 다음
+    months.push({ month: leap ? leapMonth : m, leap, days: bits[k] === '1' ? 30 : 29 });
+    if (!leap) m++;
   }
-  const parts = lunarFormatter.formatToParts(new Date(ms));
-  const get = (t) => parts.find((p) => p.type === t)?.value ?? '';
-  const monthRaw = get('month');
-  const leap = /윤|bis/.test(monthRaw);
-  return {
-    year: parseInt(get('relatedYear') || get('year'), 10),
-    month: parseInt(monthRaw.replace(/\D/g, ''), 10),
-    day: parseInt(get('day'), 10),
-    leap,
-  };
-}
-
-export function solarToLunar(y, m, d) {
-  return lunarParts(Date.UTC(y, m - 1, d, 12));
+  LUNAR_YEARS.push({ year, start: Date.UTC(year, 0, 1) + parseInt(row.slice(0, 2), 36) * 86400000, months });
 }
 
 export function lunarToSolar(y, m, d, leap = false) {
-  // 음력 y년 m월 d일은 양력 y년 1월 ~ y+1년 2월 사이
-  let t = Date.UTC(y, 0, 1, 12);
-  const end = Date.UTC(y + 1, 2, 1, 12);
-  for (; t < end; t += 86400000) {
-    const p = lunarParts(t);
-    if (p.year === y && p.month === m && p.day === d && p.leap === !!leap) {
-      const dt = new Date(t);
+  const info = LUNAR_YEARS[y - LUNAR_FIRST_YEAR];
+  if (!info) return null;
+  let t = info.start;
+  for (const mo of info.months) {
+    if (mo.month === m && mo.leap === !!leap) {
+      if (d < 1 || d > mo.days) return null;
+      const dt = new Date(t + (d - 1) * 86400000);
       return { year: dt.getUTCFullYear(), month: dt.getUTCMonth() + 1, day: dt.getUTCDate() };
     }
+    t += mo.days * 86400000;
+  }
+  return null;
+}
+
+export function solarToLunar(y, m, d) {
+  const t = Date.UTC(y, m - 1, d);
+  for (let i = LUNAR_YEARS.length - 1; i >= 0; i--) {
+    const info = LUNAR_YEARS[i];
+    if (t < info.start) continue;
+    let s = info.start;
+    for (const mo of info.months) {
+      const end = s + mo.days * 86400000;
+      if (t < end) return { year: info.year, month: mo.month, day: Math.round((t - s) / 86400000) + 1, leap: mo.leap };
+      s = end;
+    }
+    return null;
   }
   return null;
 }
