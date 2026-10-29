@@ -23,7 +23,7 @@ function show(name) {
 
 $('#backBtn').style.visibility = 'hidden';
 $('#backBtn').addEventListener('click', () => show(current && !views.result.hidden ? 'input' : current ? 'result' : 'input'));
-$('#savedBtn').addEventListener('click', () => { renderSaved(); show('saved'); });
+$('#savedBtn').addEventListener('click', async () => { show('saved'); await renderSaved(); });
 $('#newBtn').addEventListener('click', () => show('input'));
 
 // ---------- 입력 폼 ----------
@@ -314,18 +314,55 @@ function luckScore(today) {
 
 // ---------- 저장/공유 ----------
 
-function loadProfiles() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
-}
-function saveProfiles(list) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); return true; } catch { return false; }
-}
+// 저장소: claude.ai 미리보기에서는 계정별 비공개 저장(db), 그 외에는 기기(localStorage)
+const store = (() => {
+  let cloud = null;
+  const ready = (async () => {
+    try {
+      if (!window.claude?.use) return;
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      const uid = db && user ? await user.id() : null;
+      if (uid) cloud = db.collection(`data/users/${uid}/profiles`);
+    } catch { cloud = null; }
+  })();
 
-$('#saveBtn').addEventListener('click', () => {
+  const local = {
+    list() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } },
+    write(list) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); return true; } catch { return false; } },
+  };
+
+  return {
+    async list() {
+      await ready;
+      if (cloud) {
+        try {
+          const snap = await cloud.get();
+          return snap.docs.map((d) => d.data()).sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+        } catch { /* 기기 저장으로 */ }
+      }
+      return local.list();
+    },
+    async save(profile) {
+      await ready;
+      const item = { ...profile, savedAt: Date.now() };
+      if (cloud) {
+        try { await cloud.doc(item.id).set(item); return true; } catch { /* 기기 저장으로 */ }
+      }
+      return local.write([item, ...local.list().filter((p) => p.id !== item.id)].slice(0, 50));
+    },
+    async remove(id) {
+      await ready;
+      if (cloud) {
+        try { await cloud.doc(id).delete(); return; } catch { /* 기기 저장으로 */ }
+      }
+      local.write(local.list().filter((p) => p.id !== id));
+    },
+  };
+})();
+
+$('#saveBtn').addEventListener('click', async () => {
   if (!current) return;
-  const list = loadProfiles().filter((p) => p.id !== current.profile.id);
-  list.unshift(current.profile);
-  toast(saveProfiles(list.slice(0, 50)) ? '저장했어요' : '저장할 수 없어요');
+  toast(await store.save(current.profile) ? '저장했어요' : '이 화면에서는 저장할 수 없어요');
 });
 
 $('#shareBtn').addEventListener('click', async () => {
@@ -343,8 +380,8 @@ $('#shareBtn').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(text); toast('복사했어요'); } catch { toast('복사할 수 없어요'); }
 });
 
-function renderSaved() {
-  const list = loadProfiles();
+async function renderSaved() {
+  const list = await store.list();
   const ul = $('#savedList');
   if (!list.length) {
     ul.innerHTML = '<li class="empty-msg" style="display:block;border:0;background:none">저장된 사주가 없어요</li>';
@@ -359,11 +396,11 @@ function renderSaved() {
       <button class="del" data-id="${p.id}" aria-label="삭제">×</button>
     </li>`).join('');
   ul.querySelectorAll('.open').forEach((b) => b.addEventListener('click', () => {
-    const p = loadProfiles().find((x) => x.id === b.dataset.id);
+    const p = list.find((x) => x.id === b.dataset.id);
     if (p) openProfile(p);
   }));
-  ul.querySelectorAll('.del').forEach((b) => b.addEventListener('click', () => {
-    saveProfiles(loadProfiles().filter((x) => x.id !== b.dataset.id));
+  ul.querySelectorAll('.del').forEach((b) => b.addEventListener('click', async () => {
+    await store.remove(b.dataset.id);
     renderSaved();
   }));
 }
