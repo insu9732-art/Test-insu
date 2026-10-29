@@ -335,10 +335,12 @@ $('#shareBtn').addEventListener('click', async () => {
   const text = `${profile.name || '나'}의 사주팔자\n`
     + `시 ${p.hour ? pillarName(p.hour) : '??'} · 일 ${pillarName(p.day)} · 월 ${pillarName(p.month)} · 연 ${pillarName(p.year)}\n`
     + `${DAY_MASTER[saju.dayMaster].title} · ${saju.zodiac}띠 · ${saju.strength.label}`;
-  try {
-    if (navigator.share) await navigator.share({ title: '사주풀이', text, url: location.href });
-    else { await navigator.clipboard.writeText(text); toast('복사했어요'); }
-  } catch { /* 사용자가 취소 */ }
+  if (navigator.share) {
+    try { await navigator.share({ title: '사주풀이', text, url: location.href }); return; } catch (e) {
+      if (e && e.name === 'AbortError') return; // 사용자가 취소
+    }
+  }
+  try { await navigator.clipboard.writeText(text); toast('복사했어요'); } catch { toast('복사할 수 없어요'); }
 });
 
 function renderSaved() {
