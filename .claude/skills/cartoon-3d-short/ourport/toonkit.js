@@ -83,6 +83,7 @@
     // arms: stick limbs in sleeves (wide sleeve cuff), ink-dot hands
     [-1, 1].forEach((k) => { const s = [300 + k * shoulderW * 0.8, sy + 28], e = elbow(k), h = hand(k);
       p.limb([s, e, h], robe, limbW + 14); p.dot(h[0], h[1], 13, INK); p.dot(h[0], h[1], 9, skin); });
+    if (o.cangue) { const b = [[300 - 210, sy - 34], [300 + 210, sy - 34], [300 + 210, sy + 34], [300 - 210, sy + 34]]; p.grad(b, '#a8743e', '#6e4a26'); p.ring(b, 8, 0.3); p.dot(300 - 150, sy, 9, INK); p.dot(300 + 150, sy, 9, INK); }
     // neck + head
     p.limb([[300, hcy + hb - 10], [300, sy + 6]], skin, 34);
     const head = bean(hcx, hcy, ha, seed);
@@ -91,11 +92,12 @@
     [-1, 1].forEach((k) => { const e = ell(hcx + k * (ha + 4), hcy + 8, 14, 22); p.fill(e, mul(skin, k < 0 ? [1, 1, 1] : SH_SKIN)); p.ring(e, 6); });
     // face: deadpan lidded eyes .26 W apart, no blush, no catchlights
     const ex = 0.26 * 2 * ha / 2, ey = hcy + 6;
-    [-1, 1].forEach((k) => { const x = hcx + k * ex;
+    if (o.back) { p.shaded(head, '#2b2230', '#17121c', ha); p.ring(head, 10); }
+    if (!o.back) [-1, 1].forEach((k) => { const x = hcx + k * ex;
       if (o.blink) p.stroke([[x - 14, ey], [x + 14, ey]], 6);
       else { p.fill(ell(x, ey, 12, 14, 0, 180), INK); p.stroke([[x - 16, ey], [x + 16, ey]], 6); }
       p.stroke([[x - 15, ey - 32 - (k > 0 ? 2 : 0)], [x + 13, ey - 34]], 6); });
-    if (o.mouth === 'o') p.fill(ell(hcx, hcy + 62, 13, 16), '#5a1e28');
+    if (o.back) {} else if (o.mouth === 'o') p.fill(ell(hcx, hcy + 62, 13, 16), '#5a1e28');
     else if (o.mouth === 'smile') p.stroke(ell(hcx, hcy + 50, 26, 14, 20, 160, 12), 6);
     else p.stroke([[hcx - 18, hcy + 62], [hcx + 18, hcy + 60]], 6);
     // hats (our own Joseon designs)
@@ -110,7 +112,7 @@
       p.stroke([[hcx - 104, hatTop + 30], [hcx + 104, hatTop + 30]], 5, mul(hc, [1.8, 1.8, 1.9]));
       if (o.hat === 'ikseon') [-1, 1].forEach((k) => { const w = ell(hcx + k * 46, hatTop - 92, 22, 48); p.fill(w, hc); p.ring(w, 6); });
       if (o.hat === 'ikseon') p.stroke([[hcx - 100, hatTop + 50], [hcx + 100, hatTop + 50]], 7, '#c9a54a');
-    } else if (o.hat === 'knot') {
+    } else if (o.hat === 'knot' || o.hat === 'band') {
       const hair = ell(hcx, hatTop + 48, ha + 4, 66, 180, 360); hair.push([hcx + ha + 4, hatTop + 70], [hcx - ha - 4, hatTop + 70]);
       p.grad(hair, '#2b2230', '#16121c'); p.ring(hair, 7); const bun = ell(hcx + 4, hatTop - 24, 30, 26); p.fill(bun, '#2b2230'); p.ring(bun, 6);
       p.stroke([[hcx - ha + 6, hatTop + 64], [hcx + ha - 6, hatTop + 64]], 12, o.band || '#e8e2d4');
@@ -128,7 +130,10 @@
     const hM = o.height || 1.7, k = hM / (3.5 * (o.kid ? 200 : 240)), cw = 600 * k, ch = 1000 * k;
     const mk = (blink) => { const c = document.createElement('canvas'); c.width = 600; c.height = 1000; drawChar(c.getContext('2d'), { ...o, blink });
       const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; return t; };
-    const texOpen = mk(false), texShut = mk(true);
+    const poses = o.poses || { base: o.arms }; const tx = {};
+    Object.keys(poses).forEach((n) => { const a = poses[n] || o.arms; tx[n] = [false, true].map((b) => { const c = document.createElement('canvas'); c.width = 600; c.height = 1000; drawChar(c.getContext('2d'), { ...o, arms: a, blink: b });
+      const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; return t; }); });
+    const first = Object.keys(poses)[0]; const texOpen = tx[first][0];
     const geo = new T.PlaneGeometry(cw, ch); geo.translate(0, ch / 2 - 25 * k, 0);
     const mat = new T.MeshStandardMaterial({ map: texOpen, alphaTest: 0.5, roughness: 1, metalness: 0, side: T.DoubleSide, envMapIntensity: 0.35 });
     const mesh = new T.Mesh(geo, mat); mesh.castShadow = true; mesh.layers.set(NOINK);
@@ -139,10 +144,12 @@
     // deterministic blink schedule: every 0.5-2.3 s, 4 frames
     const seed = o.seed || 1, blinks = []; let tb = 0.3 + rnd(seed, 50) * 1.2; for (let i = 0; tb < 120; i++) { blinks.push(tb); tb += 0.5 + rnd(seed, 60 + i) * 1.8; }
     const wp = new T.Vector3();
-    return { group: g, mesh, update(t, cam) {
-      const shut = blinks.some((b) => t >= b && t < b + 4 / 30); const want = shut ? texShut : texOpen; if (mat.map !== want) { mat.map = want; mat.needsUpdate = true; }
+    const api = { group: g, mesh, pose: first, update(t, cam) {
+      const shut = !o.back && blinks.some((b) => t >= b && t < b + 4 / 30); const want = (tx[api.pose] || tx[first])[shut ? 1 : 0];
+      if (mat.map !== want) { mat.map = want; mesh.customDepthMaterial.map = want; mat.needsUpdate = true; mesh.customDepthMaterial.needsUpdate = true; }
       mesh.getWorldPosition(wp); let ry = Math.atan2(cam.position.x - wp.x, cam.position.z - wp.z); let pr = 0; let q = g.parent; while (q) { pr += q.rotation.y; q = q.parent; }
       mesh.rotation.y = ry - pr - g.rotation.y; } };
+    return api;
   }
 
   /** flat 2D effect card (Canvas2D painter (g, t) with t in 0..1 frames baked in `frames` steps) */
