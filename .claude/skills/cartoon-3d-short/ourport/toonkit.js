@@ -61,9 +61,9 @@
     const top = 975 - 3.5 * HH + drop, hb = HH / 2, ha = hb / 0.935, hcx = 300, hcy = top + hb;
     const robe = o.robe || '#3b5f86', robeSh = mul(robe, SH_CLOTH), skin = o.skin || SKIN;
     const limbW = Math.max(12, 0.055 * 2 * ha), sy = hcy + hb + 12; // shoulder line
-    const hemY = kneel ? 975 : 905, shoulderW = 92, hemW = kneel ? 175 : 132;
+    const hemY = kneel ? 975 : o.pants ? 650 : 905, shoulderW = 92, hemW = kneel ? 175 : o.pants ? 112 : 132;
     // legs (stick) + shoes below the robe
-    if (!kneel) { [-1, 1].forEach((k) => { p.limb([[300 + k * 38, hemY - 20], [300 + k * 40, 958]], o.pants || '#e9e2d2', limbW); p.fill(ell(300 + k * 48, 962, 30, 14), INK); }); }
+    if (!kneel) { [-1, 1].forEach((k) => { p.limb([[300 + k * 38, hemY - 20], [300 + k * 40, 958]], o.legCol || '#e9e2d2', o.pants ? limbW + 10 : limbW); p.fill(ell(300 + k * 48, 962, 30, 14), INK); }); }
     // arms behind the body first when they hang
     const arms = o.arms || [[-40, 190], [40, 190]];
     const hand = (k) => [300 + k * shoulderW * 0.85 + arms[k < 0 ? 0 : 1][0], sy + 30 + arms[k < 0 ? 0 : 1][1]];
@@ -119,6 +119,9 @@
     } else if (o.hat === 'gat') {
       const crown = [[hcx - 62, hatTop - 70], [hcx + 62, hatTop - 70], [hcx + 70, hatTop + 30], [hcx - 70, hatTop + 30]]; p.fill(crown, 'rgba(36,23,38,.85)'); p.ring(crown, 6);
       const brim = ell(hcx, hatTop + 30, 210, 26); p.fill(brim, 'rgba(36,23,38,.8)'); p.ring(brim, 6);
+    } else if (o.hat === 'cap') {
+      const dome = ell(hcx, hatTop + 40, ha + 2, 62, 180, 360); dome.push([hcx + ha + 2, hatTop + 52], [hcx - ha - 2, hatTop + 52]); p.grad(dome, hc, mul(hc, SH_CLOTH)); p.ring(dome, 7);
+      const brim = [[hcx - ha + 10, hatTop + 44], [hcx + ha - 10, hatTop + 44], [hcx + ha + 30, hatTop + 66], [hcx - ha + 50, hatTop + 66]]; p.fill(brim, mul(hc, [0.8, 0.8, 0.85])); p.ring(brim, 6, 0.2);
     } else if (o.hat === 'hair') {
       const hair = ell(hcx, hatTop + 44, ha + 6, 72, 180, 360); hair.push([hcx + ha + 6, hatTop + 80], [hcx - ha - 6, hatTop + 80]); p.grad(hair, o.hairCol || '#3a2a24', '#1d1517'); p.ring(hair, 7);
     }
