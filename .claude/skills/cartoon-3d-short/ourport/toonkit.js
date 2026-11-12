@@ -131,10 +131,11 @@
     const mk = (blink) => { const c = document.createElement('canvas'); c.width = 600; c.height = 1000; drawChar(c.getContext('2d'), { ...o, blink });
       const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; return t; };
     const poses = o.poses || { base: o.arms }; const tx = {};
-    Object.keys(poses).forEach((n) => { const a = poses[n] || o.arms; tx[n] = [false, true].map((b) => { const c = document.createElement('canvas'); c.width = 600; c.height = 1000; drawChar(c.getContext('2d'), { ...o, arms: a, blink: b });
+    Object.keys(poses).forEach((n) => { const a = poses[n] || o.arms; tx[n] = [false, true].map((b) => { const c = document.createElement('canvas'); c.width = o.lie ? 1000 : 600; c.height = o.lie ? 600 : 1000; const cg = c.getContext('2d');
+      if (o.lie) { cg.translate(0, 600); cg.rotate(-Math.PI / 2); } drawChar(cg, { ...o, arms: a, blink: b });
       const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; return t; }); });
     const first = Object.keys(poses)[0]; const texOpen = tx[first][0];
-    const geo = new T.PlaneGeometry(cw, ch); geo.translate(0, ch / 2 - 25 * k, 0);
+    const geo = o.lie ? new T.PlaneGeometry(ch, cw) : new T.PlaneGeometry(cw, ch); if (o.lie) geo.translate(0, 200 * k, 0); else geo.translate(0, ch / 2 - 25 * k, 0);
     const mat = new T.MeshStandardMaterial({ map: texOpen, alphaTest: 0.5, roughness: 1, metalness: 0, side: T.DoubleSide, envMapIntensity: 0.35 });
     const mesh = new T.Mesh(geo, mat); mesh.castShadow = true; mesh.layers.set(NOINK);
     mesh.customDepthMaterial = new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking, map: texOpen, alphaTest: 0.5 });
