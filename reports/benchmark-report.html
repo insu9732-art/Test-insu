@@ -1,0 +1,301 @@
+<title>뇌정지 수학 벤치마킹</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+/* layout: 한 줄 폭 본문, 섹션은 얇은 윗선으로 구분, 숫자는 표·막대로 */
+:root{--bg:#f4f6f9;--card:#ffffff;--fg:#17212c;--mute:#5b6875;--line:#d9dfe6;--accent:#1957c2;--hit:#b26a00;--mid:#4d7fd6;--low:#a9b4c0;--warn:#b3261e;--warnbg:#fdecea;--okbg:#e8f0fd;
+--font:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10151b;--card:#19212a;--fg:#e8edf2;--mute:#9aa7b4;--line:#2c3742;--accent:#7fb0ff;--hit:#f0b24a;--mid:#5f8fe0;--low:#4a5663;--warn:#ff8a80;--warnbg:#3a1f1d;--okbg:#1b2a44;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10151b;--card:#19212a;--fg:#e8edf2;--mute:#9aa7b4;--line:#2c3742;--accent:#7fb0ff;--hit:#f0b24a;--mid:#5f8fe0;--low:#4a5663;--warn:#ff8a80;--warnbg:#3a1f1d;--okbg:#1b2a44;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
+.wrap{max-width:720px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:36px}
+h1{font-size:1.75rem;font-weight:900;line-height:1.3;margin:0;text-wrap:balance}
+h2{font-size:1.25rem;font-weight:900;margin:0 0 12px;padding-top:20px;border-top:2px solid var(--fg);text-wrap:balance}
+h3{font-size:1.02rem;font-weight:700;margin:20px 0 6px}
+p{margin:0 0 10px}ul,ol{margin:0 0 10px;padding-left:1.2em}li{margin-bottom:4px}
+.sub{color:var(--mute);font-size:.9rem;margin-top:6px}
+.lead{background:var(--okbg);padding:14px 16px;border-radius:8px;font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+@media(min-width:560px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stats div{background:var(--card);padding:12px}
+.stats b{display:block;font-size:1.35rem;font-weight:900;font-variant-numeric:tabular-nums}
+.stats span{font-size:.8rem;color:var(--mute)}
+.bars{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:7px}
+.bars li{display:grid;grid-template-columns:1fr 3.6em;grid-template-areas:"t t" "b v";column-gap:8px;margin:0;align-items:center}
+.bars .t{grid-area:t;font-size:.82rem;line-height:1.35}
+.bars .b{grid-area:b;height:9px;background:var(--line);border-radius:2px}
+.bars i{display:block;height:100%;border-radius:2px;background:var(--low)}
+.bars .hit i{background:var(--hit)}.bars .mid i{background:var(--mid)}
+.bars .v{grid-area:v;font-size:.82rem;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--mute);margin-bottom:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 8px 8px 0;text-align:left;vertical-align:top}
+th{font-size:.78rem;color:var(--mute);font-weight:700;white-space:nowrap}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
+.warn{background:var(--warnbg);border-left:4px solid var(--warn);padding:12px 14px;border-radius:0 8px 8px 0}
+.script{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.script .ti{font-weight:900;font-size:1.05rem;line-height:1.4}
+.script .ti em{font-style:normal;color:var(--hit)}
+.script ol{margin-top:10px}.script li{margin-bottom:8px}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--mute);margin-right:4px;white-space:nowrap}
+a{color:var(--accent)}
+small,.fn{font-size:.8rem;color:var(--mute)}
+</style>
+<div class="wrap">
+<header>
+<h1>뇌정지 수학 벤치마킹과 100만 쇼츠 기획안</h1>
+<p class="sub">수집일 2026-11-21 · 유튜브 공개 페이지 직접 수집 · 조사 2개 작업방(소재 팩트검증, 시장 분석) 결과 종합</p>
+</header>
+
+<section>
+<p class="lead">결론: 이 채널은 개설 두 달 만에 누적 331만 조회를 만든 검증된 포맷입니다. 다만 최고 기록이 51.6만이고, 한국어 수학 시각화 쇼츠로 100만을 넘긴 사례는 찾지 못했습니다. 100만을 노리려면 포맷은 가져오되 소재를 "추상 도형"에서 "내 생일, 내 휴대폰, 로또, 포켓몬빵" 같은 한국 일상 사물로 옮겨야 합니다. 그 방향으로 검증된 소재 12개와 바로 녹음 가능한 대본 3편을 준비했습니다.</p>
+</section>
+
+<section>
+<h2>1. 벤치마크 채널 진단</h2>
+<div class="stats">
+<div><b>331.8만</b><span>누적 조회 (개설 63일)</span></div>
+<div><b>2,710명</b><span>구독자</span></div>
+<div><b>59편</b><span>전부 쇼츠, 하루 1편꼴</span></div>
+<div><b>51.6만</b><span>최고 조회 (11월 4일)</span></div>
+</div>
+
+<h3>10월 14일에 포맷을 바꾸고 16배가 됐습니다</h3>
+<div class="tw"><table>
+<tr><th>시기</th><th>편수</th><th>평균</th><th>중앙값</th><th>특징</th></tr>
+<tr><td>10/1~10/13</td><td class="n">11</td><td class="n">5,106</td><td class="n">4,711</td><td>해시태그 제목, 흔한 상식 소재(A4, 윤년, 지도)</td></tr>
+<tr><td>10/14 이후</td><td class="n">36</td><td class="n">82,227</td><td class="n">52,271</td><td>검은 배경, 금색 3D 렌더, 상단 2줄 질문 제목, 하단 자막</td></tr>
+</table></div>
+<p class="fn">수집 가능했던 최근 47편 기준. 나머지 12편은 그 이전 영상입니다.</p>
+
+<h3>새 포맷 36편 조회수</h3>
+<div class="legend"><span><i style="background:var(--hit)"></i>10만 이상 7편</span><span><i style="background:var(--mid)"></i>5만~10만 14편</span><span><i style="background:var(--low)"></i>5만 미만 15편</span></div>
+<ul class="bars">
+<li class="hit"><span class="t">자 없이 막대 7개로 완벽한 직선을 긋는 법</span><span class="b"><i style="width:100.0%"></i></span><span class="v">51.6만</span></li>
+<li class="hit"><span class="t">원 하나 없는 그림에서 원주율이 나왔다</span><span class="b"><i style="width:45.0%"></i></span><span class="v">23.2만</span></li>
+<li class="hit"><span class="t">80세 인생의 진짜 절반은 40세가 아니라 18세</span><span class="b"><i style="width:35.4%"></i></span><span class="v">18.3만</span></li>
+<li class="hit"><span class="t">털 난 공은 절대 다 눕힐 수 없다? 털 난 공 정리</span><span class="b"><i style="width:33.6%"></i></span><span class="v">17.3만</span></li>
+<li class="hit"><span class="t">소수를 빙글빙글 적었더니 대각선이 나타났다</span><span class="b"><i style="width:32.6%"></i></span><span class="v">16.8만</span></li>
+<li class="hit"><span class="t">원판 두 장으로 만든 이상한 모양, 올로이드</span><span class="b"><i style="width:31.0%"></i></span><span class="v">16.0만</span></li>
+<li class="hit"><span class="t">4차원 정육면체를 눈으로 보는 법, 테서랙트</span><span class="b"><i style="width:24.1%"></i></span><span class="v">12.5만</span></li>
+<li class="mid"><span class="t">절대 반복되지 않는 바닥 무늬? 펜로즈 타일의 반전</span><span class="b"><i style="width:18.4%"></i></span><span class="v">9.5만</span></li>
+<li class="mid"><span class="t">주사위를 아무렇게나 굴렸더니 나온 그림</span><span class="b"><i style="width:16.6%"></i></span><span class="v">8.6만</span></li>
+<li class="mid"><span class="t">3.14는 다시 만나고, 파이는 영원히 못 만난다</span><span class="b"><i style="width:16.6%"></i></span><span class="v">8.6만</span></li>
+<li class="mid"><span class="t">둥근 파이프 두 개를 겹쳤더니 π가 사라졌다</span><span class="b"><i style="width:16.3%"></i></span><span class="v">8.4만</span></li>
+<li class="mid"><span class="t">ㄱ자 복도를 도는 가장 넓은 소파, 58년 만에 나온 증명</span><span class="b"><i style="width:15.0%"></i></span><span class="v">7.7만</span></li>
+<li class="mid"><span class="t">정사각형은 되는데 정육면체는 절대 안 되는 퍼즐</span><span class="b"><i style="width:14.1%"></i></span><span class="v">7.3만</span></li>
+<li class="mid"><span class="t">반복 없이 바닥을 다 덮는 단 한 조각, 아인슈타인 타일</span><span class="b"><i style="width:14.1%"></i></span><span class="v">7.3만</span></li>
+<li class="mid"><span class="t">직선보다 빠른 곡선, 어디서 놓아도 동시에 도착한다</span><span class="b"><i style="width:12.1%"></i></span><span class="v">6.3만</span></li>
+<li class="mid"><span class="t">바닥을 빈틈없이 덮는 오각형은 딱 15종, 칠각형은 0종</span><span class="b"><i style="width:11.2%"></i></span><span class="v">5.8만</span></li>
+<li class="mid"><span class="t">꼭짓점은 전부 원기둥 위인데 넓이는 무한대</span><span class="b"><i style="width:10.3%"></i></span><span class="v">5.3만</span></li>
+<li class="mid"><span class="t">자와 컴퍼스로 2천 년 못 한 각의 삼등분, 종이는 한다. 그런데 종이도 못 푸는 난제 하나</span><span class="b"><i style="width:10.2%"></i></span><span class="v">5.2만</span></li>
+<li class="mid"><span class="t">아무리 어렵게 섞어도 몇 번이면 풀릴까? 루빅스 큐브 신의 수</span><span class="b"><i style="width:10.1%"></i></span><span class="v">5.2만</span></li>
+<li class="mid"><span class="t">벽을 가장 적게 쓰는 거품은? 100년 만에 깨진 켈빈의 답</span><span class="b"><i style="width:9.9%"></i></span><span class="v">5.1만</span></li>
+<li class="mid"><span class="t">곧은 막대만으로 만든 휘어진 곡면, 일엽 쌍곡면</span><span class="b"><i style="width:9.8%"></i></span><span class="v">5.1만</span></li>
+<li class="low"><span class="t">27이 9232까지 치솟는다? 규칙 두 개로 90년째 못 푼 콜라츠 추측</span><span class="b"><i style="width:9.5%"></i></span><span class="v">4.9만</span></li>
+<li class="low"><span class="t">빵끝 싫은 6명 vs 좋은 6명, 피자 12등분 완벽 해결법</span><span class="b"><i style="width:8.9%"></i></span><span class="v">4.6만</span></li>
+<li class="low"><span class="t">정육면체를 한 번 잘랐더니 정육각형이 나왔다</span><span class="b"><i style="width:8.8%"></i></span><span class="v">4.5만</span></li>
+<li class="low"><span class="t">14와 15만 바꿨을 뿐인데, 영원히 못 푸는 퍼즐</span><span class="b"><i style="width:8.6%"></i></span><span class="v">4.4만</span></li>
+<li class="low"><span class="t">원이 굴러가는데 핀은 직선으로</span><span class="b"><i style="width:7.6%"></i></span><span class="v">3.9만</span></li>
+<li class="low"><span class="t">앞뒤뿐인 종이에서 세 번째 면이 나온다? 헥사플렉사곤</span><span class="b"><i style="width:7.4%"></i></span><span class="v">3.8만</span></li>
+<li class="low"><span class="t">원을 끝없이 채웠는데 숫자가 전부 정수인 이유</span><span class="b"><i style="width:7.3%"></i></span><span class="v">3.8만</span></li>
+<li class="low"><span class="t">종이 고리를 잘랐더니 매듭이 나왔다</span><span class="b"><i style="width:6.0%"></i></span><span class="v">3.1만</span></li>
+<li class="low"><span class="t">삼각형을 네 조각으로 잘라 돌렸더니 정사각형이 됐다</span><span class="b"><i style="width:4.8%"></i></span><span class="v">2.5만</span></li>
+<li class="low"><span class="t">맨 위 블록이 통째로 탁자 밖에? 블록 쌓기 문제</span><span class="b"><i style="width:4.3%"></i></span><span class="v">2.2만</span></li>
+<li class="low"><span class="t">종이 띠를 반으로 접기만 했는데 용이 나왔다</span><span class="b"><i style="width:3.6%"></i></span><span class="v">1.9만</span></li>
+<li class="low"><span class="t">세 각이 모두 직각인 삼각형, 지구 위엔 진짜 있다</span><span class="b"><i style="width:3.4%"></i></span><span class="v">1.7만</span></li>
+<li class="low"><span class="t">먼저 고르면 지는 주사위? 비추이적 주사위</span><span class="b"><i style="width:3.1%"></i></span><span class="v">1.6만</span></li>
+<li class="low"><span class="t">네모난 바퀴도 부드럽게 굴러갈까?  수학이 만든 길</span><span class="b"><i style="width:2.3%"></i></span><span class="v">1.2만</span></li>
+<li class="low"><span class="t">문을 바꿀까, 그냥 둘까? 천재 수학자도 속은 몬티 홀 문제</span><span class="b"><i style="width:1.5%"></i></span><span class="v">0.8만</span></li>
+</ul>
+
+<h3>잘된 영상과 안된 영상의 차이</h3>
+<ul>
+<li><b>제목에 모순이 들어 있으면 터집니다.</b> "자 없이 직선", "원 하나 없는 그림에서 원주율", "절반은 40세가 아니라 18세". 상위 7편 중 5편이 "A인데 B가 아니다" 구조입니다.</li>
+<li><b>누구나 아는 유명 소재는 죽습니다.</b> 몬티 홀 0.8만, 네모 바퀴 1.2만, 비추이적 주사위 1.6만. 이미 다른 채널에서 본 내용은 넘깁니다.</li>
+<li><b>내 얘기가 되면 댓글이 달립니다.</b> "인생의 절반은 18세"는 조회 18.3만에 댓글 162개, 피자 12등분은 조회 대비 댓글 비율이 채널 평균의 3.6배입니다.</li>
+<li><b>정리 이름을 제목에 넣으면 손해입니다.</b> "비추이적 주사위", "블록 쌓기 문제"처럼 용어가 앞에 나온 영상은 하위권입니다. 해외 100만 영상도 같은 패턴입니다(아래 3절).</li>
+<li><b>본문 구조는 고정입니다.</b> 일상 질문 → 직관대로 해 보기 → 반전 장면 → 수학자 이름과 연도 한 줄 → 한 번 더 뒤집는 마지막 문장. 대본 분량은 설명란 기준 300~400자입니다.</li>
+</ul>
+
+<h3>이 채널의 약점 (우리가 파고들 곳)</h3>
+<ul>
+<li>구독 전환이 조회 1,000회당 0.82명입니다. 같은 장르 상위 채널은 3~4명입니다.</li>
+<li>시리즈가 없습니다. 영상마다 단발이라 다음 편을 볼 이유가 없습니다.</li>
+<li>롱폼이 0편입니다. 쇼츠에서 넘어갈 곳이 없습니다.</li>
+<li>소재가 전부 서양 수학사입니다. 한국 일상 소재는 피자 한 편뿐입니다.</li>
+<li>시청자가 직접 해 보는 참여형이 없습니다.</li>
+</ul>
+</section>
+
+<section>
+<h2>2. 100만이 되는 영상의 조건 (시장 분석)</h2>
+<p>해외·국내 16개 채널의 인기 쇼츠를 직접 수집해 비교했습니다.</p>
+<div class="tw"><table>
+<tr><th>채널</th><th>형식</th><th>최고 쇼츠</th><th>구독/조회1천</th></tr>
+<tr><td>3Blue1Brown</td><td>애니메이션</td><td class="n">6,300만</td><td class="n">-</td></tr>
+<tr><td>MindYourDecisions</td><td>퍼즐·착시</td><td class="n">5,500만</td><td class="n">4.58</td></tr>
+<tr><td>Steve Mould</td><td>실물 실험</td><td class="n">2,900만</td><td class="n">-</td></tr>
+<tr><td>과학을보다 (한국)</td><td>토크 클립</td><td class="n">1,300만</td><td class="n">0.40</td></tr>
+<tr><td>Mathematical Visual Proofs</td><td>수학 애니메이션</td><td class="n">430만</td><td class="n">3.92</td></tr>
+<tr><td>매일수학 (한국)</td><td>손필기 교과</td><td class="n">220만</td><td class="n">1.65</td></tr>
+<tr><td>뇌정지 수학</td><td>3D + AI 음성</td><td class="n">51.6만</td><td class="n">0.82</td></tr>
+</table></div>
+<ul>
+<li><b>1,000만 이상은 전부 손에 잡히는 물건입니다.</b> 초콜릿, 물 미로, 자이로, 부딪히는 블록. 순수 추상 애니메이션의 관측 상한은 약 430만입니다.</li>
+<li><b>100만 이상 제목은 질문이나 틀린 명제입니다.</b> "Does Pi Equal 2??", "How is this possible?". 같은 채널에서도 "Viviani's Theorem"식 제목은 20만~50만에 머뭅니다.</li>
+<li><b>길이는 41~60초입니다.</b> 설명형 100만 영상 13개 실측 중앙값이 57초입니다.</li>
+<li><b>한국에서 수요가 확인된 소재가 있습니다.</b> 과학을보다의 "종이를 7번 이상 접을 수 없는 이유"가 670만입니다.</li>
+<li><b>한국어 수학 3D 시각화로 100만을 넘긴 채널은 없었습니다.</b> 빈 시장인지 수요 한계인지는 이번 조사로 가릴 수 없었습니다.</li>
+</ul>
+</section>
+
+<section>
+<h2>3. "속여도 된다"를 이렇게 적용했습니다</h2>
+<p>속이는 대상은 시청자의 직관으로 한정했습니다. 제목과 첫 2초는 틀려 보이는 말로 시작하고, 영상 안에서 그 말이 사실임을 보여 줍니다. 숫자, 연도, 인명은 전부 출처를 확인했고 지어낸 내용은 넣지 않았습니다.</p>
+<p>거짓 정보를 섞지 않은 이유는 두 가지입니다. 수학 쇼츠는 댓글에서 바로 반박당하고, 유튜브가 2025년 7월부터 대량생산·비진정성 콘텐츠를 수익화에서 제외하고 있습니다.</p>
+<p>조사 중 걸러낸 흔한 오류도 정리했습니다. 대본에 쓰면 안 되는 내용입니다.</p>
+<ul>
+<li>"자니베코프가 발견했다, 소련이 기밀로 했다": 1834년 푸앵소가 이미 기술했습니다.</li>
+<li>"종이 42번 접으면 정확히 달에 닿는다": 41번은 약 22만 km로 못 미치고 42번은 약 44만 km로 넘습니다.</li>
+<li>"카드 7번 섞으면 완벽히 무작위": 척도에 따라 6번 또는 7번입니다.</li>
+<li>"한국에서 매주 1만 명이 1-2-3-4-5-6을 산다": 출처를 찾지 못했습니다.</li>
+<li>"뢸로 삼각형 드릴은 완벽한 정사각형을 뚫는다": 모서리가 둥글고 넓이의 약 98.8%입니다.</li>
+</ul>
+</section>
+
+<section>
+<h2>4. 채널 기획</h2>
+<h3>콘셉트: 내 물건으로 확인하는 수학</h3>
+<p>벤치마크의 화면 문법(상단 2줄 질문, 중앙 3D, 하단 자막, 50초 안팎)은 그대로 쓰고 세 가지를 바꿉니다.</p>
+<ol>
+<li><b>소재를 한국 일상으로.</b> 생일, 휴대폰, 로또, 포켓몬빵, 지하철, 청계천.</li>
+<li><b>참여형 엔딩.</b> "당신 생일은 몇 번 만에 갇혔나요?"처럼 댓글로 답할 거리를 남깁니다.</li>
+<li><b>시리즈와 롱폼.</b> "직접 해보세요"와 "한국판" 두 시리즈로 묶고, 5편이 쌓이면 8분짜리 모음 롱폼을 만들어 쇼츠마다 관련 동영상으로 연결합니다.</li>
+</ol>
+<p>색과 서체는 금색·검정을 그대로 베끼지 말고 고유 색 하나를 정하길 권합니다. 같은 화면이면 알고리즘과 시청자 모두 아류로 인식합니다. 음성은 한 가지로 고정합니다.</p>
+
+<h3>첫 12편 라인업</h3>
+<div class="tw"><table>
+<tr><th>#</th><th>상단 제목 (흰 줄 / 강조 줄)</th><th>반전</th><th>주의할 단서</th></tr>
+<tr><td class="n">1</td><td>생일 네 자리를 넣으면 / 전부 6174가 된다?</td><td>어떤 네 자리 수든 7번 안에 6174</td><td>1111은 예외, 앞자리 0 유지</td></tr>
+<tr><td class="n">2</td><td>휴대폰을 던지면 / 꼭 반 바퀴 뒤집힌다?</td><td>세 축 중 중간 축만 불안정</td><td>침대 위에서 하라고 안내</td></tr>
+<tr><td class="n">3</td><td>23명만 모여도 / 생일이 겹친다?</td><td>23명에서 50.7%, 70명에서 99.9%</td><td>365일 균등 가정</td></tr>
+<tr><td class="n">4</td><td>로또를 매주 사면 / 1등까지 몇 년?</td><td>평균 15만 6천 년</td><td>보장이 아니라 평균, 주 1게임 기준</td></tr>
+<tr><td class="n">5</td><td>띠부씰 159종 / 빵 몇 개 사야 다 모을까?</td><td>159개가 아니라 평균 약 898개</td><td>모든 씰이 같은 확률이라는 가정</td></tr>
+<tr><td class="n">6</td><td>종이를 42번 접으면 / 달을 넘는다?</td><td>0.1mm × 2의 42제곱 = 약 44만 km</td><td>사고실험, 실제 기록은 12~13번</td></tr>
+<tr><td class="n">7</td><td>수분 99%가 98%로 / 무게는 절반?</td><td>100kg이 50kg</td><td>"가상의 수박"으로 표현</td></tr>
+<tr><td class="n">8</td><td>지구에 두른 끈 / 1m만 더하면?</td><td>전 구간이 16cm 뜸, 농구공도 동일</td><td>완전한 구 가정</td></tr>
+<tr><td class="n">9</td><td>피자를 접으면 / 왜 안 처질까?</td><td>1827년 가우스의 정리</td><td>늘어나지 않는 한에서 성립</td></tr>
+<tr><td class="n">10</td><td>기차 바퀴는 / 원기둥이 아니다?</td><td>원뿔이라 스스로 커브를 돎</td><td>기울기는 "약 1/20이 일반적"까지만</td></tr>
+<tr><td class="n">11</td><td>도로를 없앴더니 / 길이 뚫렸다?</td><td>브라에스 역설과 청계고가</td><td>"증명"이 아니라 "사례로 인용"</td></tr>
+<tr><td class="n">12</td><td>어떻게 놓아도 / 혼자 일어서는 돌?</td><td>굄뵈츠, 2006년 제작</td><td>오뚝이와 다름(무게추 없음)</td></tr>
+</table></div>
+<p class="fn">예비: 친구 역설(페이스북 사용자의 92.7%가 친구보다 친구가 적음, 2011년 데이터), 축구공 오각형 12개, 랭턴의 개미, 루퍼트 왕자의 정육면체, 37% 법칙. 출처 URL은 저장소의 검증 자료에 있습니다.</p>
+</section>
+
+<section>
+<h2>5. 바로 쓸 수 있는 대본 3편</h2>
+<p>각 50초 안팎, 문장 하나가 자막 한 줄입니다.</p>
+
+<div class="script">
+<div class="ti">생일 네 자리를 넣으면<br><em>전부 6174가 된다?</em></div>
+<p><span class="tag">참여형</span><span class="tag">1편 추천</span></p>
+<ol>
+<li>당신 생일을 네 자리로 떠올려 보세요. 8월 15일이면 0815.</li>
+<li>숫자를 큰 순서로 늘어놓고, 작은 순서로 늘어놓은 수를 뺍니다.</li>
+<li>8510 빼기 0158은 8352.</li>
+<li>한 번 더. 8532 빼기 2358은 6174.</li>
+<li>여기서 또 하면 7641 빼기 1467, 다시 6174. 빠져나갈 수 없습니다.</li>
+<li>0815만 그런 게 아닙니다. 숫자가 전부 같지만 않으면, 네 자리 수 어떤 걸 넣어도 일곱 번 안에 6174에 갇힙니다.</li>
+<li>인도 수학자 카프리카의 이름을 따서 카프리카 상수라고 부릅니다.</li>
+<li>그래서 1년에 딱 하루, 안 되는 생일이 있습니다. 11월 11일.</li>
+<li>당신 생일은 몇 번 만에 갇혔나요?</li>
+</ol>
+<p class="fn">화면: 숫자 타일이 정렬되고 빼지는 과정을 반복, 마지막에 9,990개 경로가 6174 한 점으로 모이는 나무 그림.</p>
+</div>
+
+<div class="script" style="margin-top:14px">
+<div class="ti">휴대폰을 던지면<br><em>꼭 반 바퀴 뒤집힌다?</em></div>
+<p><span class="tag">내 물건</span><span class="tag">따라 하기</span></p>
+<ol>
+<li>침대 위에서 휴대폰을 한 바퀴 돌려 던져 보세요. 돌리는 방법은 세 가지입니다.</li>
+<li>화면을 위로 둔 채 팽이처럼. 깔끔하게 돕니다.</li>
+<li>세로로 세워 드릴처럼. 이것도 깔끔합니다.</li>
+<li>그런데 앞으로 한 바퀴 넘기면, 돌아온 휴대폰이 뒤집혀 있습니다.</li>
+<li>아무리 연습해도 똑같습니다. 솜씨가 아니라 물리 법칙이니까요.</li>
+<li>물체에는 회전축이 세 개 있고, 가장 돌리기 쉬운 축과 가장 어려운 축은 안정적입니다.</li>
+<li>그 사이, 중간 축만 불안정합니다. 아주 작은 흔들림이 점점 커져 반 바퀴 비틀립니다.</li>
+<li>1985년 우주비행사 자니베코프는 우주정거장에서 나사 하나가 혼자 계속 뒤집히는 걸 봤습니다.</li>
+<li>테니스 라켓도, 책도, 리모컨도 똑같습니다. 지금 옆에 있는 걸로 해 보세요.</li>
+</ol>
+<p class="fn">화면: 휴대폰 3D 모델에 세 축을 색으로 표시, 중간 축 회전만 뒤집히는 장면을 슬로모션으로. 이름은 "테니스 라켓 정리", 원리는 1834년 푸앵소가 먼저 기술(설명란에 표기).</p>
+</div>
+
+<div class="script" style="margin-top:14px">
+<div class="ti">23명만 모여도<br><em>생일이 겹친다?</em></div>
+<p><span class="tag">내 얘기</span><span class="tag">댓글 유도</span></p>
+<ol>
+<li>축구 경기장에는 선수 22명과 주심, 모두 23명이 서 있습니다.</li>
+<li>이 중에 생일이 같은 두 사람이 있을 확률은 얼마일까요?</li>
+<li>1년은 365일인데 사람은 23명. 10%도 안 될 것 같습니다.</li>
+<li>실제로는 50.7%. 절반이 넘습니다.</li>
+<li>함정은 "나와 같은 사람"이 아니라 "아무나 두 명"이라는 데 있습니다.</li>
+<li>23명이 서로 짝을 지으면 253쌍. 기회가 253번인 셈입니다.</li>
+<li>30명이면 70.6%, 50명이면 97%.</li>
+<li>70명이 모이면 99.9%입니다.</li>
+<li>당신 반에도 생일 같은 친구가 있었나요?</li>
+</ol>
+<p class="fn">화면: 구슬 23개 사이에 선이 하나씩 이어지며 253개까지 급증. 계산은 365일이 같은 확률이라는 가정(설명란에 표기).</p>
+</div>
+</section>
+
+<section>
+<h2>6. 제작 방법: 컴퓨터와 휴대폰 역할</h2>
+<div class="tw"><table>
+<tr><th>단계</th><th>어디서</th><th>도구</th></tr>
+<tr><td>3D·수학 애니메이션 렌더</td><td>컴퓨터 (또는 이 클라우드 세션)</td><td>Blender, Python 애니메이션 코드, ffmpeg</td></tr>
+<tr><td>내레이션</td><td>클라우드</td><td>AI 음성 (이 세션에 타입캐스트가 연결돼 있음)</td></tr>
+<tr><td>자막·제목 합성, 9:16 출력</td><td>클라우드 자동화</td><td>ffmpeg 스크립트</td></tr>
+<tr><td>최종 확인, 업로드, 제목·관련 동영상 설정, 댓글 고정</td><td>휴대폰</td><td>유튜브 앱, YouTube Studio 앱</td></tr>
+</table></div>
+<p>렌더는 휴대폰으로 할 수 없습니다. 대신 렌더부터 합성까지를 클라우드에서 돌리고 완성 파일만 휴대폰으로 받아 올리는 흐름이면 컴퓨터 없이도 운영할 수 있습니다.</p>
+</section>
+
+<section>
+<h2>7. 목표와 일정</h2>
+<div class="tw"><table>
+<tr><th>기간</th><th>할 일</th><th>확인할 숫자</th></tr>
+<tr><td>1주차</td><td>1~3편 제작·업로드, 색·음성 확정</td><td>편당 3만 이상이면 포맷 통과</td></tr>
+<tr><td>2~4주차</td><td>하루 1편, 12편 완주, 모음 롱폼 1편</td><td>10만 이상 3편, 구독/조회1천 2명 이상</td></tr>
+<tr><td>5~8주차</td><td>상위 3편의 후속편, 하위 소재 유형 중단</td><td>30만 이상 1편</td></tr>
+<tr><td>9~12주차</td><td>잘된 시리즈에 집중</td><td>100만 1편 도전</td></tr>
+</table></div>
+<p>기준선은 벤치마크입니다. 새 포맷 36편 중 10만 이상이 7편(19%)이고 50만 이상은 1편(3%)이었습니다. 같은 확률이면 100만은 수십 편에 한 번 나오는 일이므로, 편수를 쌓으면서 적중률을 높이는 계획으로 잡았습니다.</p>
+</section>
+
+<section>
+<h2>8. 꼭 알아야 할 위험</h2>
+<div class="warn">
+<p><b>수익화 기준이 2027년 2월 1일에 올라갑니다.</b> 지금은 구독 1,000명과 90일 유효 쇼츠 조회 1,000만 회입니다. 2월 1일 이후 신규 신청은 2,000만 회가 필요하고, 가입 후에도 90일 1,000만 회를 유지해야 쇼츠 광고 수익이 나옵니다. (유튜브 한국 공식 블로그, 2026-08-11)</p>
+</div>
+<ul style="margin-top:12px">
+<li><b>공개 조회수와 유효 조회수는 다릅니다.</b> 2025년 3월 31일부터 공개 조회수는 재생이 시작될 때마다 올라갑니다. 수익과 자격은 더 적은 유효 조회수로 계산됩니다.</li>
+<li><b>수익은 크지 않습니다.</b> 한국 쇼츠는 유효 조회 100만 회당 3만~10만 원이라는 추정이 있을 뿐, 검증된 수치는 찾지 못했습니다.</li>
+<li><b>같은 틀과 AI 음성의 반복은 수익화 심사에서 불리할 수 있습니다.</b> 편마다 고유한 시각 자료와 검증된 내용을 넣는 것이 방어책입니다.</li>
+<li><b>100만은 보장할 수 없습니다.</b> 이 장르 한국어 최고 기록이 51.6만입니다.</li>
+</ul>
+</section>
+
+<section>
+<h2>9. 조사에서 확인하지 못한 것</h2>
+<ul>
+<li>영상을 직접 재생해 보지는 못했습니다. 화면 구성은 썸네일 6장과 설명란 15편으로 판단했습니다.</li>
+<li>벤치마크의 시청 지속률, 유효 조회수, 수익은 채널 주인만 볼 수 있습니다.</li>
+<li>한국 시청자 기준 최적 업로드 시간 자료는 없었습니다. 유튜브는 업로드 시간이 중요하지 않다고 밝힌 바 있습니다(2023년).</li>
+<li>포켓몬빵 씰 봉입 비율, 실제 테니스공 캔 치수는 제작 전에 따로 확인해야 합니다.</li>
+</ul>
+</section>
+</div>
