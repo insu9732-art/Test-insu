@@ -53,7 +53,9 @@ function goBack() {
 }
 
 function go(target, tab) {
-  if (LOCKED_VIEWS[target] && !isUnlocked()) {
+  // 사주풀이는 배너 없이 바로 쓴다 (같은 입력 화면을 쓰는 토정비결은 잠금)
+  const free = target === 'input' && tab !== 'tojung';
+  if (LOCKED_VIEWS[target] && !free && !isUnlocked()) {
     requireUnlock(tab === 'tojung' ? '토정비결' : LOCKED_VIEWS[target], () => go(target, tab));
     return;
   }
@@ -227,10 +229,14 @@ form.addEventListener('submit', (e) => {
     sijin: !exact && sijin >= 0 ? sijin : null,
     correction: form.correction.checked,
   };
-  requireUnlock('사주풀이', () => {
+  const open = () => {
     const ok = openProfile(profile);
     if (!ok) fail('해당 음력 날짜를 찾을 수 없어요. 윤달 여부를 확인해 주세요.');
-  });
+  };
+  // 토정비결·오늘운세로 들어온 경우만 잠금
+  if (pendingTab === 'tojung') requireUnlock('토정비결', open);
+  else if (pendingTab === 'fortune') requireUnlock('오늘운세', open);
+  else open();
 });
 
 renderSijin();
@@ -773,7 +779,7 @@ async function renderSaved() {
     </li>`).join('');
   ul.querySelectorAll('.open').forEach((b) => b.addEventListener('click', () => {
     const p = list.find((x) => x.id === b.dataset.id);
-    if (p) requireUnlock('사주풀이', () => openProfile(p));
+    if (p) openProfile(p);
   }));
   ul.querySelectorAll('.del').forEach((b) => b.addEventListener('click', async () => {
     await store.remove(b.dataset.id);
@@ -1405,7 +1411,7 @@ function renderAd() {
   $('#adHint').className = 'ad-hint' + (open ? ' ok' : '');
   $('#adHint').textContent = open
     ? '✔ 모든 메뉴 이용 중 (앱을 다시 켜면 배너를 한 번 더 눌러 주세요)'
-    : '▲ 배너를 누르면 모든 메뉴를 이용할 수 있어요';
+    : '▲ 배너를 누르면 토정비결·꿈해몽·궁합 등 모든 메뉴를 이용할 수 있어요 (사주풀이는 무료)';
 }
 
 $('#adBanner').addEventListener('click', openAd);
@@ -1416,7 +1422,10 @@ renderAd();
 loadRemoteAds();
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { hiddenAt = Date.now(); return; }
-  if (hiddenAt && Date.now() - hiddenAt > RELOCK_AFTER) { unlocked = false; loadRemoteAds(); if (LOCKED_VIEWS[navStack[navStack.length - 1]] || navStack[navStack.length - 1] === 'result') { navStack.length = 0; show('home'); } }
+  if (hiddenAt && Date.now() - hiddenAt > RELOCK_AFTER) { unlocked = false; loadRemoteAds(); const v = navStack[navStack.length - 1];
+    // 사주풀이(입력·사주 결과)는 그대로 두고, 잠긴 화면이면 처음으로
+    const locked = v === 'result' ? Boolean(TAB_GROUP[activeTab]) : Boolean(LOCKED_VIEWS[v]) && v !== 'input';
+    if (locked) { navStack.length = 0; show('home'); } }
   renderAd();
 });
 
