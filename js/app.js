@@ -42,7 +42,15 @@ function show(name, { push = true } = {}) {
     || (name === 'result' && (b.dataset.go === 'today' ? activeTab === 'fortune' : b.dataset.go === 'input' && (b.dataset.tab === 'tojung') === (activeTab === 'tojung') && activeTab !== 'fortune'))));
   if (name === 'saved') renderSaved();
   if (name === 'dream') renderDreams();
+  updateAdBar(name);
   window.scrollTo(0, 0);
+}
+
+// 사주풀이(입력·사주 결과) 화면에는 쿠팡 배너를 띄우지 않는다
+function updateAdBar(name = navStack[navStack.length - 1]) {
+  const saju = (name === 'input' && pendingTab !== 'tojung' && pendingTab !== 'fortune')
+    || (name === 'result' && !TAB_GROUP[activeTab]);
+  document.body.classList.toggle('no-ad', saju);
 }
 
 function goBack() {
@@ -317,6 +325,7 @@ function renderTab() {
   $('#statusText').textContent = GROUP_TITLE[group];
   const html = { chart: tabChart, elements: tabElements, personality: tabPersonality, life: tabLife, tojung: tabTojung, daewoon: tabDaewoon, fortune: tabFortune }[activeTab]();
   $('#tabContent').innerHTML = html;
+  updateAdBar();
   const cur = $('#tabContent .dw-item.current');
   if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
 }

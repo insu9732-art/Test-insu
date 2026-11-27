@@ -535,3 +535,6 @@ body.locked .menubar [data-lock]::before { content: "🔒"; font-size: 12px; mar
 .cal-d.today { outline: 2px solid #c0182c; outline-offset: -2px; }
 .cal-legend { font-size: 12px; margin-top: 6px; }
 .cal-legend .cal-d { display: inline-block; min-height: 0; width: 12px; height: 12px; vertical-align: middle; margin-left: 6px; }
+
+/* 사주풀이 화면에서는 쿠팡 배너 숨김 */
+body.no-ad #adBar { display: none; }
